@@ -1,75 +1,56 @@
-# React + TypeScript + Vite
+# Sheetquo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Local-first quotation automation built around Excel templates. Paste a request, review the details, and download a
+real, editable `.xlsx` that keeps your own template's layout. Everything runs in the browser, with no backend.
 
-Currently, two official plugins are available:
+**Status:** Phases 0–9 and the follow-up implementation audit are complete. See [completion review](docs/COMPLETION_REVIEW.md)
+for verification and remaining owner acceptance. Excel Online and physical printer acceptance are still pending. Businesses can be saved,
+switched, and backed up, and your own `.xlsx` templates can be imported, mapped, tested, and made active. Quotations
+can be made by pasting a message or typing the items, reviewed line by line, saved as drafts, and downloaded as Excel.
+Print settings include margins, centering, repeated headings, and estimated page breaks that keep the footer together.
+Backups can be previewed and restored with conflict choices; customer drafts are opt-in. The production build saves
+app assets for offline use and waits for all windows to close before activating updates.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Requirements
 
-## React Compiler
+- Node.js 24.15+ or 22.22.2+ (the test DOM dependencies require these versions). `.nvmrc` pins 24.15.0; the completion
+  checks use this runtime. The globally installed Node was not changed.
+- Excel Desktop on Windows, only for `excel:verify` and `excel:fixtures`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Commands
 
-## Expanding the ESLint configuration
+| Command | What it does |
+|---|---|
+| `npm run dev` | Starts the development server |
+| `npm run build` | Type-checks and builds the static site |
+| `npm run preview` | Serves the built site |
+| `npm run lint` | Runs ESLint |
+| `npm run typecheck` | Runs the TypeScript compiler |
+| `npm test` | Runs the tests and writes samples to `output/excel-spike/` |
+| `npm run test:e2e` | Builds, then tests restore and offline use in temporary Chrome profiles on localhost |
+| `npm run excel:verify` | Checks those samples in real Excel Desktop |
+| `npm run excel:fixtures` | Rebuilds the Excel-saved test fixtures |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Layout
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- `src/app`: routes and app-level wiring.
+- `src/components`: the layout, UI primitives, and form fields.
+- `src/features`: pieces of a screen that belong to one feature.
+- `src/domain`: business rules, with no React and no Excel library.
+- `src/infrastructure/excel`: the workbook engine, behind `WorkbookAdapter`.
+- `src/test/fixtures/synthetic`: synthetic templates and data. Real customer data never goes here.
+- `tests/integration`: engine tests that generate and reopen workbooks.
+- `scripts/excel`: PowerShell checks that drive Excel Desktop.
+- `docs`: spec, brand guide, compatibility results, decisions, test plan, and handoff.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Privacy
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Quotation and template data stay in the browser. Keep private workbooks in `private/` or `reference-workbooks/`, which
+Git ignores.
 
-```
+## Offline and backups
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+Run `npm run build` then `npm run preview`. Open Settings and wait for **Ready for offline use** before disconnecting.
+Offline caching is disabled in the development server. Hosting needs HTTPS (localhost works for testing) and SPA
+fallbacks to `index.html`. No deployment was performed. See [the user guide](docs/USER_GUIDE.md) for backup/restore,
+installation and printing, and [dependency review](docs/DEPENDENCY_REVIEW.md) for known advisories.
