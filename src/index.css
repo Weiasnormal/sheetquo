@@ -1,111 +1,156 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@import 'tailwindcss';
+@import './styles/tokens.css';
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+@theme inline {
+  --color-ground: var(--sheetquo-background);
+  --color-surface: var(--sheetquo-white);
+  --color-ink: var(--sheetquo-charcoal);
+  --color-muted: var(--sheetquo-slate);
+  --color-line: var(--sheetquo-border);
+  --color-rule: var(--sheetquo-rule);
+  --color-control: var(--sheetquo-control);
+  --color-lime: var(--sheetquo-lime);
+  --color-lime-hover: var(--sheetquo-lime-hover);
+  --color-lime-tint: var(--sheetquo-lime-tint);
+  --color-lime-deep: var(--sheetquo-lime-dark);
+  --color-danger: var(--sheetquo-error);
+  --color-danger-tint: var(--sheetquo-error-tint);
+  --color-notice: var(--sheetquo-notice);
+  --color-notice-tint: var(--sheetquo-notice-tint);
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --radius-button: var(--sheetquo-radius-button);
+  --radius-card: var(--sheetquo-radius-card);
+  --radius-chip: var(--sheetquo-radius-chip);
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+  --font-sans: var(--sheetquo-font);
+
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100svh;
+    background: var(--sheetquo-background);
+    color: var(--sheetquo-charcoal);
+    font-family: var(--sheetquo-font);
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--sheetquo-charcoal);
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+@utility tabular {
+  font-variant-numeric: tabular-nums;
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+/* The menu is opened often on a phone, so it stays quick and exits faster than it enters. */
+.sheet-overlay[data-state='open'] {
+  animation: fade-in 200ms var(--ease-out-strong);
 }
 
-body {
-  margin: 0;
+.sheet-overlay[data-state='closed'] {
+  animation: fade-out 150ms var(--ease-out-strong);
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+.sheet-panel[data-state='open'] {
+  animation: sheet-in 240ms var(--ease-drawer);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+.sheet-panel[data-state='closed'] {
+  animation: sheet-out 180ms var(--ease-drawer);
+}
+
+/* Menus grow from their trigger; dialogs from the centre. Both leave faster than they arrive. */
+.menu-content {
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+}
+
+.menu-content[data-state='open'],
+.dialog-content[data-state='open'] {
+  animation: pop-in 160ms var(--ease-out-strong);
+}
+
+.menu-content[data-state='closed'],
+.dialog-content[data-state='closed'] {
+  animation: fade-out 110ms var(--ease-out-strong);
+}
+
+.dialog-overlay[data-state='open'] {
+  animation: fade-in 160ms var(--ease-out-strong);
+}
+
+.dialog-overlay[data-state='closed'] {
+  animation: fade-out 110ms var(--ease-out-strong);
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
   }
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
   }
 }
-p {
-  margin: 0;
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+@keyframes sheet-in {
+  from {
+    transform: translateX(-100%);
+  }
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+@keyframes sheet-out {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-panel[data-state='open'] {
+    animation: fade-in 120ms ease-out;
+  }
+
+  .sheet-panel[data-state='closed'] {
+    animation: fade-out 120ms ease-out;
+  }
+
+  .menu-content[data-state='open'],
+  .dialog-content[data-state='open'] {
+    animation: fade-in 120ms ease-out;
+  }
+
+  * {
+    scroll-behavior: auto !important;
+  }
+
+  .press {
+    scale: none !important;
+  }
 }

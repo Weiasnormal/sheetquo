@@ -1,0 +1,31 @@
+/* Values come from Sheetquo_Brand_Guidelines.md section 2. Swap this file for the
+   shipped sheetquo-tokens.css once it is in the project. */
+:root {
+  --sheetquo-lime: #a8f047;
+  --sheetquo-lime-dark: #64b900;
+  --sheetquo-lime-tint: #eafbd7;
+  --sheetquo-charcoal: #1f2937;
+  --sheetquo-charcoal-deep: #18221c;
+  --sheetquo-slate: #6b7280;
+  --sheetquo-border: #e5e7eb;
+  --sheetquo-background: #fafbf6;
+  --sheetquo-white: #ffffff;
+
+  --sheetquo-radius-button: 10px;
+  --sheetquo-radius-card: 16px;
+
+  --sheetquo-font: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Interface steps derived from the palette, not extra brand colors. */
+  --sheetquo-lime-hover: color-mix(in srgb, var(--sheetquo-lime) 88%, var(--sheetquo-charcoal));
+  --sheetquo-rule: #f1f2f4;
+  /* 3.0:1 on white, the WCAG minimum for a form field's edge. */
+  --sheetquo-control: #8e95a2;
+  --sheetquo-radius-chip: 6px;
+
+  /* Semantic, not part of the brand palette. Each ink is at least 4.5:1 on its tint. */
+  --sheetquo-error: #b42318;
+  --sheetquo-error-tint: #fef1ee;
+  --sheetquo-notice: #92400e;
+  --sheetquo-notice-tint: #fffbeb;
+}
