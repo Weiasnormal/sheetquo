@@ -1,0 +1,45 @@
+.wiwo-launcher { position: fixed; top: 6px; right: 64px; z-index: 55; }
+.wiwo-toggle { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; width: 44px; height: 44px; border: 1px solid var(--sheetquo-control); border-radius: 10px; background: var(--sheetquo-white); color: var(--sheetquo-charcoal); cursor: pointer; }
+.wiwo-toggle:hover { background: var(--sheetquo-lime-tint); }
+.wiwo-toggle[aria-pressed='true'] { background: var(--sheetquo-lime); border-color: var(--sheetquo-charcoal); }
+.wiwo-button-name { display: none; }
+.wiwo-sleep-mark { position: absolute; top: 4px; right: 4px; }
+.wiwo-cursor-icon { transform-origin: 50% 70%; }
+.wiwo-toggle[data-sleeping][data-animate] .wiwo-cursor-icon { animation: wiwo-sleep 4s ease-in-out infinite; }
+.wiwo-launcher[data-hidden] .wiwo-cursor-icon { animation-play-state: paused; }
+.wiwo-toggle:hover .wiwo-cursor-icon, .wiwo-toggle:focus-visible .wiwo-cursor-icon { animation-play-state: paused; }
+@keyframes wiwo-sleep { 0%, 100% { transform: rotate(-8deg) translateY(1px); } 50% { transform: rotate(-3deg) translateY(-1px); } }
+.wiwo-offer { position: absolute; top: 52px; right: -48px; width: min(292px, calc(100vw - 24px)); border-radius: 14px; background: var(--sheetquo-white); padding: 16px; box-shadow: 0 6px 24px #18221c24; }
+.wiwo-offer > .wiwo-close { position: absolute; top: 5px; right: 5px; }
+.wiwo-card { position: fixed; z-index: 54; padding: 18px; border-radius: 16px; background: var(--sheetquo-white); color: var(--sheetquo-charcoal); box-shadow: 0 8px 32px #18221c30; max-height: min(620px, calc(100dvh - 88px)); overflow-y: auto; overscroll-behavior: contain; }
+.wiwo-highlight { position: fixed; z-index: 51; border: 2px solid var(--sheetquo-charcoal); outline: 3px solid var(--sheetquo-lime); border-radius: 8px; pointer-events: none; }
+.wiwo-pointer { position: fixed; z-index: 52; pointer-events: none; fill: var(--sheetquo-lime); color: var(--sheetquo-charcoal); transition: left 180ms ease-out, top 180ms ease-out; }
+.wiwo-close { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; border-radius: 8px; cursor: pointer; }
+.wiwo-close:hover, .wiwo-secondary:hover { background: var(--sheetquo-rule); }
+.wiwo-text-button { display: inline-flex; min-height: 36px; align-items: center; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.wiwo-chapter { display: block; width: 100%; min-width: 0; min-height: 40px; border: 1px solid var(--sheetquo-control); border-radius: 8px; padding: 6px 8px; background: var(--sheetquo-white); font-size: 14px; }
+.wiwo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.wiwo-primary, .wiwo-secondary { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 3px; border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.wiwo-primary { background: var(--sheetquo-lime); color: var(--sheetquo-charcoal); margin-left: auto; }
+.wiwo-primary:hover { background: var(--sheetquo-lime-hover); }
+.wiwo-secondary { border: 1px solid var(--sheetquo-control); }
+.wiwo-primary:disabled, .wiwo-secondary:disabled { cursor: not-allowed; color: var(--sheetquo-slate); background: var(--sheetquo-rule); }
+.wiwo-loading { position: fixed; right: 16px; bottom: 16px; max-width: calc(100vw - 32px); padding: 16px; background: var(--sheetquo-white); border: 1px solid var(--sheetquo-control); border-radius: 12px; z-index: 54; }
+.wiwo-modal-note { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--sheetquo-border); }
+.wiwo-guiding #main { padding-bottom: 380px; }
+[data-wiwo] { scroll-margin-top: 84px; }
+@media (min-width: 1024px) {
+  .wiwo-launcher { top: 10px; right: 24px; }
+  .wiwo-toggle { width: auto; padding: 0 14px; }
+  .wiwo-button-name { display: inline; font-size: 13px; font-weight: 600; }
+  .wiwo-sleep-mark { right: auto; left: 26px; }
+  .wiwo-offer { right: 0; }
+}
+@media (max-width: 767px) {
+  .wiwo-card { max-height: min(440px, 52dvh); padding: 14px; }
+  .wiwo-guiding #main { padding-bottom: 55dvh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wiwo-toggle[data-sleeping][data-animate] .wiwo-cursor-icon { animation: none; }
+  .wiwo-pointer { transition: none; }
+}
