@@ -5,11 +5,12 @@
 .front-page a:hover { text-decoration: underline; }
 .front-skip { position: fixed; left: 12px; top: 12px; padding: 12px 20px; z-index: 80; background: white; transform: translateY(-160%); }
 .front-skip:focus { transform: translateY(0); }
-.front-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 26px; padding-right: 112px; border-bottom: 1px solid var(--sheetquo-border); }
+.front-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 26px; border-bottom: 1px solid var(--sheetquo-border); }
 .front-header img, .front-footer img { object-fit: contain; height: auto; }
-.front-header nav { display: flex; align-items: center; gap: 28px; font-size: 14px; font-weight: 500; }
+.front-header nav { margin-left: auto; display: flex; align-items: center; gap: 28px; font-size: 14px; font-weight: 500; }
 .front-header nav a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
 .front-header-open { font-weight: 650; }
+.front-header-wiwo { display: flex; align-items: center; flex-shrink: 0; }
 .front-hero { display: grid; grid-template-columns: .95fr 1.15fr; gap: 32px; align-items: center; padding-block: 42px 56px; }
 .front-hero-copy { padding-bottom: 40px; }
 .front-hero h1 { max-width: 570px; font-size: clamp(44px, 4.7vw, 65px); line-height: 1.075; letter-spacing: -.04em; font-weight: 650; text-wrap: balance; color: var(--sheetquo-charcoal-deep); }
@@ -85,7 +86,6 @@
 .front-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; justify-content: space-between; border-top: 1px solid var(--sheetquo-border); padding-block: 28px; font-size: 13px; }
 .front-footer p { color: var(--sheetquo-slate); }
 .front-footer > a:last-child { display: flex; gap: 10px; align-items: center; min-height: 44px; font-weight: 600; }
-@media (min-width: 1024px) { body:has(.front-page) .wiwo-launcher { top: 27px; right: max(24px, calc((100vw - 1240px) / 2)); } }
 @media (max-width: 1100px) {
   .front-wrap { width: calc(100% - 56px); }
   .front-header nav { gap: 18px; }
@@ -97,7 +97,6 @@
   .front-webgl { inset: 0 -48px 0 4px; }
   .front-process, .front-local, .front-wiwo-inner { gap: 55px; }
 }
-@media (max-width: 1023px) { body:has(.front-page) .wiwo-launcher { top: 24px; right: 28px; } .front-header { padding-right: 68px; } }
 @media (max-width: 800px) {
   .front-hero { grid-template-columns: 1fr; padding-top: 50px; gap: 28px; }
   .front-hero-copy { padding: 0; }
@@ -120,12 +119,11 @@
 }
 @media (max-width: 520px) {
   .front-wrap { width: calc(100% - 40px); }
-  .front-header { padding-block: 20px; padding-right: 58px; gap: 8px; }
+  .front-header { padding-block: 20px; gap: 8px; }
   .front-header img { width: 132px; }
   .front-header nav > a:not(:last-child) { display: none; }
   .front-header-open { font-size: 12px; line-height: 1.3; max-width: 104px; }
   .front-header-open svg { flex-shrink: 0; }
-  body:has(.front-page) .wiwo-launcher { top: 20px; right: 15px; }
   .front-hero { padding-block: 40px 30px; }
   .front-hero h1 { font-size: 43px; }
   .front-hero-copy > p { font-size: 16px; margin-block: 23px; }
