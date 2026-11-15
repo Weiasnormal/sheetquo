@@ -29,18 +29,20 @@ export function AppLayout() {
       <aside className="sticky top-0 hidden h-svh border-r border-line lg:block">
         <NavContent />
       </aside>
-      <MobileBar />
+      <div className="min-w-0">
+        <MobileBar />
 
-      <main id="main" ref={mainRef} tabIndex={-1} className="min-w-0 outline-none">
-        <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 lg:px-9 lg:pt-16 lg:pb-9">
-          {status === 'unavailable' && (
-            <p data-wiwo="recovery" role="status" className="mb-6 rounded-button border border-notice/30 bg-notice-tint px-4 py-3 text-notice">
-              This browser is blocking local storage, so nothing can be saved here. Private windows often do this.
-            </p>
-          )}
-          <Outlet />
-        </div>
-      </main>
+        <main id="main" ref={mainRef} tabIndex={-1} className="min-w-0 outline-none">
+          <div className="mx-auto max-w-300 px-4 py-6 sm:px-6 lg:px-9 lg:pt-2 lg:pb-9">
+            {status === 'unavailable' && (
+              <p data-wiwo="recovery" role="status" className="mb-6 rounded-button border border-notice/30 bg-notice-tint px-4 py-3 text-notice">
+                This browser is blocking local storage, so nothing can be saved here. Private windows often do this.
+              </p>
+            )}
+            <Outlet />
+          </div>
+        </main>
+      </div>
 
       <ScrollRestoration />
       <Toaster position="bottom-right" toastOptions={{ className: 'font-sans' }} />

@@ -3,6 +3,7 @@ import { Link, ScrollRestoration } from 'react-router'
 import { ArrowRight, ArrowUpRight, Check, MousePointer2, ShieldCheck } from 'lucide-react'
 import { WorkflowScene } from '../../features/frontpage/WorkflowScene'
 import { useWiwo } from '../../features/wiwo/context'
+import { WiwoSlot } from '../../features/wiwo/WiwoToggle'
 import '../../features/frontpage/frontpage.css'
 
 export function FrontPage() {
@@ -13,6 +14,7 @@ export function FrontPage() {
     <header className="front-header front-wrap">
       <Link to="/" aria-label="Sheetquo home"><img src="/brandassets/sheetquo-logo-primary.webp" alt="Sheetquo" width="172" height="40" /></Link>
       <nav aria-label="Front page"><a href="#how-it-works">How it works</a><a href="#meet-wiwo">Meet Wiwo</a><Link className="front-header-open" to="/dashboard">Open workspace <ArrowUpRight size={17} aria-hidden="true" /></Link></nav>
+      <WiwoSlot className="front-header-wiwo" />
     </header>
     <main id="front-main" tabIndex={-1}>
       <section className="front-hero front-wrap" aria-labelledby="front-title">
