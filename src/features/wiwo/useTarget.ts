@@ -3,7 +3,8 @@ import { inViewport, isReady, openDialog, targetFor } from './dom'
 import type { LessonStep } from './lessons'
 
 type Box = { left: number; top: number; width: number; height: number }
-type Position = { box?: Box; dialog?: HTMLElement; ready: boolean; busy: boolean; missing: boolean; width: number; height: number }
+type Point = { x: number; y: number }
+type Position = { box?: Box; home?: Point; dialog?: HTMLElement; ready: boolean; busy: boolean; missing: boolean; width: number; height: number }
 const INITIAL: Position = { ready: false, busy: false, missing: false, width: 1024, height: 768 }
 
 export function useTarget(step?: LessonStep, paused = false) {
@@ -24,13 +25,17 @@ export function useTarget(step?: LessonStep, paused = false) {
       const width = (viewport?.width ?? window.innerWidth) / zoom, height = (viewport?.height ?? window.innerHeight) / zoom
       const raw = !dialog ? target?.getBoundingClientRect() : undefined
       const rect = raw ? { top: raw.top / zoom, bottom: raw.bottom / zoom, left: raw.left / zoom, right: raw.right / zoom } : undefined
-      const box = rect && rect.bottom > 56 && rect.top < height ? {
-        left: Math.max(8, rect.left - 4), top: Math.max(60, rect.top - 4),
+      // The sticky header covers the top 56px, except for the Wiwo button that lives inside it.
+      const floor = target?.closest('[data-wiwo-slot]') ? 4 : 60
+      const box = rect && rect.bottom > floor - 4 && rect.top < height ? {
+        left: Math.max(8, rect.left - 4), top: Math.max(floor, rect.top - 4),
         width: Math.max(0, Math.min(width - 16, rect.right + 4) - Math.max(8, rect.left - 4)),
-        height: Math.max(0, Math.min(height - 12, rect.bottom + 4) - Math.max(60, rect.top - 4)),
+        height: Math.max(0, Math.min(height - 12, rect.bottom + 4) - Math.max(floor, rect.top - 4)),
       } : undefined
-      const next: Position = { box, dialog, width, height, ready: isReady(step?.ready), busy: Boolean(document.querySelector('[data-wiwo-busy="true"]')), missing: !target && Date.now() - started > 1500 }
-      setPosition((previous) => previous.dialog === next.dialog && previous.ready === next.ready && previous.busy === next.busy && previous.missing === next.missing && previous.width === width && previous.height === height && JSON.stringify(previous.box) === JSON.stringify(box) ? previous : next)
+      const toggle = targetFor(['wiwo-toggle'])?.getBoundingClientRect()
+      const home = toggle ? { x: Math.round((toggle.left + toggle.width / 2) / zoom), y: Math.round((toggle.top + toggle.height / 2) / zoom) } : undefined
+      const next: Position = { box, home, dialog, width, height, ready: isReady(step?.ready), busy: Boolean(document.querySelector('[data-wiwo-busy="true"]')), missing: !target && Date.now() - started > 1500 }
+      setPosition((previous) => previous.dialog === next.dialog && previous.ready === next.ready && previous.busy === next.busy && previous.missing === next.missing && previous.width === width && previous.height === height && JSON.stringify(previous.box) === JSON.stringify(box) && previous.home?.x === home?.x && previous.home?.y === home?.y ? previous : next)
     }
     const schedule = () => { if (!frame) frame = requestAnimationFrame(measure) }
     schedule()
