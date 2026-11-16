@@ -47,7 +47,7 @@ const HEADINGS: [RegExp, ItemColumnKey][] = [
   [/^(PART NO\.?|PART NUMBER|PARTS NUMBER|PART #|SKU|CODE)$/, 'partNumber'],
   [/^(DESCRIPTION|PARTS NAME|PART NAME|ITEM|ITEMS|PARTICULARS|PRODUCT)$/, 'description'],
   [/^(QTY|QTY\.|QUANTITY)$/, 'quantity'],
-  [/^(UNIT|UOM|U\/M|QUANTITY ISSUED)$/, 'unit'],
+  [/^(UNIT|UOM|U\/M|SET\/PC\/ASSY|QUANTITY ISSUED)$/, 'unit'],
   [/^(AMOUNT|TOTAL AMOUNT|TOTAL|LINE TOTAL)$/, 'lineAmount'],
 ]
 
