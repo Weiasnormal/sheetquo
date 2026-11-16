@@ -117,7 +117,7 @@ function cellInfo(shown: ExcelJS.Cell): GridCell {
   }
 }
 
-function readGrid(sheet: ExcelJS.Worksheet, region: Region): WorkbookGridData {
+export function readGrid(sheet: ExcelJS.Worksheet, region: Region): WorkbookGridData {
   const firstRow = region.firstRow
   const lastRow = Math.min(region.lastRow, firstRow + GRID_ROW_LIMIT - 1)
   const lastColumn = Math.min(region.lastColumn, GRID_COLUMN_LIMIT)

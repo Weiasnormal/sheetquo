@@ -1,3 +1,4 @@
+import { BUSINESS_LAYOUT } from '../../domain/quotation/letterhead'
 import { readBackup } from './backup'
 import { db } from './db'
 import { attempt, StorageFailure } from './storageResult'
@@ -51,7 +52,7 @@ export function restoreBackup(bytes: Uint8Array, mode: RestoreMode, confirmRepla
         id: v.get(version.id)!, businessId: b.get(version.businessId)!, templateId: t.get(version.templateId)!,
         originalBlobId: f.get(version.originalBlobId)!, sourceBlobId: f.get(version.sourceBlobId)! })))
       await db.quotations.bulkAdd(quotations.map((quote) => ({ ...quote, id: q.get(quote.id)!,
-        businessId: b.get(quote.businessId)!, templateId: t.get(quote.templateId)!, templateVersionId: v.get(quote.templateVersionId)! })))
+        businessId: b.get(quote.businessId)!, templateId: t.get(quote.templateId) ?? BUSINESS_LAYOUT, templateVersionId: v.get(quote.templateVersionId) ?? BUSINESS_LAYOUT })))
       const current = await db.settings.get('currentBusinessId')
       if (!current || !(await db.businesses.get(current.value))) {
         const first = businesses.find((business) => !business.archivedAt)

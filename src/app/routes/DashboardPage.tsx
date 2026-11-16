@@ -22,7 +22,7 @@ export function DashboardPage() {
       : { key: 'business', title: 'Add your business', detail: 'The name and contact details on your quotations', to: '/businesses/new', done: false },
     template
       ? { key: 'upload', title: template.template.name, detail: 'Template uploaded', to: `/templates/${template.template.id}/map`, done: true }
-      : { key: 'upload', title: 'Upload your template', detail: 'Your own .xlsx quotation layout', to: '/templates/import', done: false },
+      : { key: 'upload', title: 'Customize your layout (optional)', detail: 'Your own .xlsx quotation layout', to: '/templates/import', done: false },
     ready
       ? {
           key: 'map',
@@ -33,7 +33,7 @@ export function DashboardPage() {
         }
       : {
           key: 'map',
-          title: 'Map and test your template',
+          title: 'Configure a fixed Excel form (optional)',
           detail: 'Tell Sheetquo where the customer, items, and totals go',
           to: template ? `/templates/${template.template.id}/map` : '/templates',
           done: false,
@@ -41,12 +41,12 @@ export function DashboardPage() {
   ]
   const doneCount = steps.filter(({ done }) => done).length
   const description = !business
-    ? 'Add a business and a template to start quoting.'
+    ? 'Add your business to start quoting with its letterhead.'
     : !template
-      ? 'Upload a template to start quoting.'
+      ? 'Your business letterhead is ready. Paste a request to start quoting.'
       : !ready
-        ? 'Map and test your template to start quoting.'
-        : 'Your template is ready. Paste a customer’s message to start a quotation.'
+        ? 'Your imported design is available for adaptive quotations. Mapping is optional.'
+        : 'Paste a customer’s message to start a quotation.'
 
   return (
     <>

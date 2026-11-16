@@ -62,7 +62,7 @@ export function TemplatesPage() {
     <>
       <PageHeader
         title="Templates"
-        description={business ? `Excel layouts for ${business.displayName}.` : 'Your own Excel layouts, ready to fill with each quotation.'}
+        description={business ? `Optional Excel designs for ${business.displayName}. A saved design can be used immediately in an adaptive quotation.` : 'Your own Excel layouts, ready to fill with each quotation.'}
         actions={business ? uploadButton : undefined}
       />
 
@@ -84,7 +84,7 @@ export function TemplatesPage() {
 
       {business && templates.length === 0 && (
         <EmptyState icon={FileSpreadsheet} title="Upload your first template" action={uploadButton}>
-          Start from the .xlsx quotation you already use. Your original file is never changed.
+          Your business letterhead is ready for quoting. Upload an .xlsx here to reuse its column styling.
         </EmptyState>
       )}
 
@@ -102,7 +102,10 @@ export function TemplatesPage() {
           <Select value={activeTemplates.some(({ template, active }) => active && template.id === business.defaultTemplateId) ? business.defaultTemplateId : ''}
             onChange={async (event) => {
               const result = await chooseBusinessTemplate(business.id, event.target.value || undefined, 'default')
-              if (result.ok) toast.success('Default template saved')
+              if (result.ok) {
+                try { localStorage.removeItem('quotation-layout:' + business.id) } catch { /* optional preference */ }
+                toast.success('Default template saved')
+              }
               else toast.error(result.error.message)
             }}>
             <option value="">First available template</option>

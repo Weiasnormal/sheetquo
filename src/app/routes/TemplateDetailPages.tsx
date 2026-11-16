@@ -216,6 +216,11 @@ export function TemplateMapPage() {
         <>
           <PageHeader title={detail.template.name} description={<StateLine detail={detail} />} />
           <div className="flex flex-col gap-4">
+            {!detail.template.archivedAt && <Panel className="p-5">
+              <PanelTitle>Use this design</PanelTitle>
+              <p className="my-3 text-muted">Start an adaptive quotation with this sheet’s column styling and your business letterhead. Only fixed Excel forms need the mapping below.</p>
+              <Button asChild><Link to={'/quotation/new?design=' + detail.template.id}>Start adaptive quotation</Link></Button>
+            </Panel>}
             <MappingScreen detail={detail} />
             <VersionsPanel summary={detail} />
             <Panel aria-labelledby="compatibility-title" className="p-5">

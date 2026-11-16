@@ -21,12 +21,14 @@ const STATUS_TONE = { Kept: 'positive', Warned: 'notice', Blocked: 'danger' } as
 export function HelpPage() {
   return (
     <>
-      <PageHeader title="Help" description="How to prepare a template and what happens to it." />
+      <PageHeader title="Help" description="Start with your business letterhead or customize the output with an Excel design." />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <WiwoLibrary />
         <Panel aria-labelledby="prepare-title" className="p-5">
-          <PanelTitle id="prepare-title">Prepare a template</PanelTitle>
+          <PanelTitle id="prepare-title">Start quoting</PanelTitle>
+          <p className="mt-2">Save your business and logo, then choose New quotation. An adaptive quotation prints the included items and enabled adjustments. Check the preview before downloading Excel.</p>
+          <h3 className="mt-4 font-semibold">Optional Excel design</h3>
           <ol className="mt-3 flex list-decimal flex-col gap-2 pl-4">
             <li>Keep one quotation on one worksheet, with old quotations removed.</li>
             <li>Leave one styled row for items. Sheetquo repeats it for every item.</li>
@@ -43,7 +45,7 @@ export function HelpPage() {
       </div>
 
       <Panel aria-labelledby="support-title" className="mt-4 p-5">
-        <PanelTitle id="support-title">What happens to your template</PanelTitle>
+        <PanelTitle id="support-title">Fixed Excel form support</PanelTitle>
         <div className="mt-2 overflow-x-auto">
           <table className="w-full min-w-[560px]">
             <thead>

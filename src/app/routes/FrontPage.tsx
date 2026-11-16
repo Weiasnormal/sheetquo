@@ -20,7 +20,7 @@ export function FrontPage() {
       <section className="front-hero front-wrap" aria-labelledby="front-title">
         <div className="front-hero-copy">
           <h1 id="front-title">Your next quotation starts with <span>a message.</span></h1>
-          <p>Turn customer requests into editable Excel quotations. Keep your template, check the details, and make it yours.</p>
+          <p>Turn customer requests into editable Excel quotations. Start with your business letterhead, review the details, and download Excel.</p>
           <Link to="/dashboard" className="front-primary">Open workspace <ArrowRight size={19} aria-hidden="true" /></Link>
           <div className="front-reassurance"><ShieldCheck size={17} aria-hidden="true" /><span>No account needed. Your data stays in this browser.</span></div>
         </div>
@@ -28,9 +28,9 @@ export function FrontPage() {
       </section>
       <div className="front-facts front-wrap"><span>Your own Excel templates</span><span>Editable .xlsx output</span><span>Multiple businesses</span><span>Offline after setup</span></div>
       <section id="how-it-works" className="front-process front-wrap" aria-labelledby="process-title">
-        <div className="front-process-intro"><h2 id="process-title">A familiar layout.<br />A simpler way to quote.</h2><p>You’ve already put thought into your quotation template. Sheetquo helps you use it for the next customer, and the next.</p><Link to="/templates">Bring your template <ArrowUpRight size={18} aria-hidden="true" /></Link></div>
+        <div className="front-process-intro"><h2 id="process-title">A familiar layout.<br />A simpler way to quote.</h2><p>Start with your business details and logo. Bring an existing Excel design if you want familiar columns and styling.</p><Link to="/templates">Bring your template <ArrowUpRight size={18} aria-hidden="true" /></Link></div>
         <ol className="front-process-list">
-          <li><span className="front-step-number">1</span><div><h3>Set up your template once.</h3><p>Upload an Excel workbook. Choose the quotation area, connect fields to cells, then test and activate the layout.</p></div></li>
+          <li><span className="front-step-number">1</span><div><h3>Set up your letterhead once.</h3><p>Save your business name, logo and contact details. Every new quotation has room for its own items and adjustments.</p></div></li>
           <li><span className="front-step-number">2</span><div><h3>Give every request a proper review.</h3><p>Paste a message or type your items. Resolve uncertain prices, check quantities, and choose discounts, deductions, fees or taxes.</p></div></li>
           <li><span className="front-step-number">3</span><div><h3>Take it from here in Excel.</h3><p>Generate a new workbook while your original template stays intact. Check the result in Excel, then edit, print or export a PDF.</p></div></li>
         </ol>

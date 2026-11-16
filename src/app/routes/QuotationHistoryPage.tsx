@@ -44,7 +44,7 @@ export function QuotationHistoryPage() {
             {filtered.slice(currentPage * 25, currentPage * 25 + 25).map((quote) => <li key={quote.id}>
               <Link to={`/quotation/${quote.id}`} className="flex flex-wrap justify-between gap-2 rounded-button py-4">
                 <span className="min-w-0 break-words"><span className="block font-medium">{quotationTitle(quote)}</span><span className="text-sm text-muted">{formatDate(quote.updatedAt)} · {quote.generatedAt ? 'Excel generated' : 'Draft'}</span></span>
-                <span className="tabular">{formatMoney(computeTotals(quote).grandTotalMinor, business.currency)}</span>
+                <span className="tabular">{formatMoney(computeTotals(quote).grandTotalMinor, quote.letterhead?.currency ?? business.currency)}</span>
               </Link>
             </li>)}
           </ul>}

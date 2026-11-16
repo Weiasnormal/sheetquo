@@ -1,4 +1,5 @@
 import JSZip from 'jszip'
+import { BUSINESS_LAYOUT } from '../../domain/quotation/letterhead'
 import { z } from 'zod'
 import { businessRecordSchema } from '../../domain/business/businessForm'
 import type { BusinessRecord } from '../../domain/business/businessForm'
@@ -12,8 +13,8 @@ import { SCHEMA_VERSION } from './migrations'
 import { quotationRecordSchema } from '../../domain/quotation/recordSchema'
 import type { QuotationRecord } from '../../domain/quotation/records'
 
-/** Format 4 adds adjustment/output mappings and template preferences; formats 1–3 remain readable. */
-export const BACKUP_FORMAT_VERSION = 4
+/** Format 5 includes adaptive layouts and frozen letterheads. Formats 1–4 remain readable. */
+export const BACKUP_FORMAT_VERSION = 5
 export const MAX_BACKUP_BYTES = 100 * 1024 * 1024
 const MAX_EXPANDED_BYTES = 250 * 1024 * 1024
 const MAX_ENTRIES = 10_000
@@ -275,8 +276,9 @@ async function readArchive(bytes: Uint8Array): Promise<BackupRead> {
           (version.state !== 'draft' && !version.mapping) ||
           blobKinds.get(version.originalBlobId) !== 'workbook' ||
           blobKinds.get(version.sourceBlobId) !== 'workbook',
-      ) || quotations.data.some((quote) => versionMap.get(quote.templateVersionId)?.businessId !== quote.businessId ||
-        versionMap.get(quote.templateVersionId)?.templateId !== quote.templateId)
+      ) || quotations.data.some((quote) => !businessIds.has(quote.businessId) ||
+        (!(quote.letterhead && quote.templateId === BUSINESS_LAYOUT && quote.templateVersionId === BUSINESS_LAYOUT) &&
+        (versionMap.get(quote.templateVersionId)?.businessId !== quote.businessId || versionMap.get(quote.templateVersionId)?.templateId !== quote.templateId)))
     if (broken) return fail('DAMAGED')
     for (const version of versions.data) {
       const original = blobs.find(({ id }) => id === version.originalBlobId)!

@@ -2,7 +2,7 @@ import { wiwoSuccess } from '../../features/wiwo/events'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { FileQuestion, Link2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { Select } from '../../components/forms/Field'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -10,60 +10,35 @@ import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import type { BusinessRecord } from '../../domain/business/businessForm'
 import type { TemplateSummary } from '../../domain/template/records'
-import { blankDraft, draftFromText, readyTemplates } from '../../features/quotations/draftSetup'
+import { blankDraft, draftFromText } from '../../features/quotations/draftSetup'
 import { PastePanel } from '../../features/quotations/PastePanel'
 import { QuotationSteps } from '../../features/quotations/QuotationSteps'
 import { QuotationWorkspace } from '../../features/quotations/QuotationWorkspace'
 import { createQuotation, readQuotation } from '../../infrastructure/storage/quotationRepository'
-import { chooseBusinessTemplate } from '../../infrastructure/storage/businessRepository'
+import { BUSINESS_LAYOUT } from '../../domain/quotation/letterhead'
 import { useWorkspace } from '../useWorkspace'
 
 export function NewQuotationPage() {
   const { business, activeTemplates } = useWorkspace()
-  const [template] = activeTemplates
-  const ready = readyTemplates(activeTemplates)
-  const templatesLink = (
-    <Button asChild variant="secondary">
-      <Link to="/templates">Templates</Link>
-    </Button>
-  )
-
   return (
     <>
       <PageHeader title="New quotation" description="Paste the customer's request, check the details, and download Excel." />
       <QuotationSteps current={0} />
-      {business && ready.length > 0 ? (
-        <StartQuotation key={business.id} business={business} ready={ready} />
-      ) : business && template ? (
-        <EmptyState
-          icon={Link2}
-          title="Map and test your template first"
-          action={
-            <Button asChild variant="secondary">
-              <Link to={`/templates/${template.template.id}/map`}>Open {template.template.name}</Link>
-            </Button>
-          }
-        >
-          {template.template.name} is uploaded. It needs mapping and a test before it can fill quotations.
-        </EmptyState>
-      ) : business ? (
-        <EmptyState icon={Link2} title="Upload a template first" action={templatesLink}>
-          {business.displayName} is ready. A quotation also needs a template for its layout.
-        </EmptyState>
+      {business ? (
+        <StartQuotation key={business.id} business={business} ready={activeTemplates} />
       ) : (
         <EmptyState
           icon={Link2}
-          title="Add a business and a template first"
+          title="Add your business first"
           action={
             <>
               <Button asChild variant="secondary">
                 <Link to="/businesses/new">Add business</Link>
               </Button>
-              {templatesLink}
             </>
           }
         >
-          A quotation needs a business for its details and a template for its layout.
+          Your business supplies the letterhead. You can start quoting as soon as it is saved.
         </EmptyState>
       )}
     </>
@@ -73,11 +48,21 @@ export function NewQuotationPage() {
 /** Nothing is saved until the owner extracts or chooses to type the items, so an abandoned paste leaves no draft. */
 function StartQuotation({ business, ready }: { business: BusinessRecord; ready: TemplateSummary[] }) {
   const navigate = useNavigate()
-  const preferred = ready.find(({ template }) => template.id === business.lastTemplateId) ?? ready.find(({ template }) => template.id === business.defaultTemplateId) ?? ready[0]
-  const [templateId, setTemplateId] = useState(preferred.template.id)
+  const [params] = useSearchParams()
+  const selectedDesign = ready.find(s => s.template.id === params.get('design'))
+  const defaultDesign = ready.find(s => s.template.id === business.defaultTemplateId) ?? ready[0]
+  const [choice, setChoice] = useState(() => {
+    if (selectedDesign) return selectedDesign.template.id
+    let remembered = ''
+    try { remembered = localStorage.getItem('quotation-layout:' + business.id) ?? '' } catch { /* storage optional */ }
+    const valid = remembered === BUSINESS_LAYOUT || ready.some(s => remembered === s.template.id || (s.active && remembered === 'fixed:' + s.template.id))
+    return valid ? remembered : defaultDesign?.template.id ?? BUSINESS_LAYOUT
+  })
+  const [useTemplateLogo, setUseTemplateLogo] = useState(false)
+  const adaptive = !choice.startsWith('fixed:')
   const [text, setText] = useState('')
   const [starting, setStarting] = useState(false)
-  const summary = ready.find(({ template }) => template.id === templateId) ?? preferred
+  const summary = ready.find(({ template }) => template.id === choice.replace(/^fixed:/, ''))
 
   useEffect(() => {
     if (!text.trim()) return
@@ -88,32 +73,31 @@ function StartQuotation({ business, ready }: { business: BusinessRecord; ready: 
 
   async function start(fromText: boolean) {
     setStarting(true)
-    const created = await createQuotation(fromText ? draftFromText(text, business, summary) : blankDraft(business, summary))
+    const draft = fromText ? draftFromText(text, business, summary, adaptive) : blankDraft(business, summary, adaptive)
+    if (draft.letterhead) draft.letterhead.useTemplateLogo = Boolean(summary && useTemplateLogo)
+    const created = await createQuotation(draft)
     setStarting(false)
     if (!created.ok) return toast.error(created.error.message)
+    try { localStorage.setItem('quotation-layout:' + business.id, choice) } catch { /* optional preference */ }
     wiwoSuccess('quote-created')
     navigate(`/quotation/${created.value.id}?step=review`)
   }
 
   return (
     <div data-wiwo="quote-start" data-wiwo-busy={starting} className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-      {ready.length > 1 && (
-        <label className="flex flex-col gap-2 text-sm font-medium sm:max-w-sm">
-          Template
-          <Select value={templateId} onChange={async (event) => {
-            const id = event.target.value
-            setTemplateId(id)
-            const saved = await chooseBusinessTemplate(business.id, id, 'last')
-            if (!saved.ok) toast.error(saved.error.message)
-          }}>
-            {ready.map(({ template, active }) => (
-              <option key={template.id} value={template.id}>
-                {template.name}, version {active?.version}
-              </option>
-            ))}
-          </Select>
-        </label>
-      )}
+      {ready.length > 0 && <label className="flex flex-col gap-2 text-sm font-medium sm:max-w-md">
+        Quotation layout
+        <Select value={choice} onChange={event => {
+          setChoice(event.target.value)
+          setUseTemplateLogo(false)
+          try { localStorage.setItem('quotation-layout:' + business.id, event.target.value) } catch { /* preference is optional */ }
+        }}>
+          <option value={BUSINESS_LAYOUT}>Business letterhead · adaptive</option>
+          {ready.map(s => <option key={s.template.id} value={s.template.id}>{s.template.name} · adaptive</option>)}
+          {ready.filter(s => s.active).map(s => <option key={s.template.id} value={'fixed:' + s.template.id}>{s.template.name} · fixed Excel form</option>)}
+        </Select>
+      </label>}
+      {adaptive && summary && <label><input type="checkbox" checked={useTemplateLogo} onChange={e => setUseTemplateLogo(e.target.checked)} /> Prefer the imported header image if available</label>}
       <PastePanel
         value={text}
         onChange={setText}
@@ -129,7 +113,7 @@ function StartQuotation({ business, ready }: { business: BusinessRecord; ready: 
         }
       />
       <p className="px-1 text-xs text-muted">
-        Fills {summary.template.name}, version {summary.active?.version}, for {business.displayName}.
+        {adaptive ? 'Your business letterhead, with rows for the items and adjustments you include.' : 'Uses the mapped cells of your fixed Excel form.'} <Link to="/templates/import" className="underline">Import an optional design</Link>
       </p>
     </div>
   )

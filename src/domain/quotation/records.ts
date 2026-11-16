@@ -3,6 +3,7 @@ import type { Quotation } from './types'
 
 /** A quotation saved in this browser. It stays a draft that can be edited and generated again. */
 export type QuotationRecord = Quotation & {
+  letterhead?: import('./letterhead').Letterhead
   templateId: string
   /** What the parser read from `rawInput`, kept so the review can show each source line after a reload. */
   parse?: ParseResult

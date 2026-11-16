@@ -45,7 +45,7 @@
 .front-stage-copy strong { font-size: 14px; font-weight: 600; }
 .front-stage-copy p { max-width: 470px; color: var(--sheetquo-slate); margin-top: 4px; }
 .front-static-sheet { position: absolute; width: 310px; top: 40px; right: 12px; transform: rotate(3deg); box-shadow: 10px 16px 38px #18221c17; }
-.front-document { background: white; padding: 24px; border-top: 5px solid var(--sheetquo-lime); border-radius: 4px; color: var(--sheetquo-charcoal); }
+.front-document { background: white; padding: 24px; border-top: 5px solid var(--sheetquo-lime); color: var(--sheetquo-charcoal); }
 .front-document-heading { display: flex; justify-content: space-between; gap: 8px; font-size: 9px; font-weight: 600; }
 .front-document h3 { font-size: 26px; font-weight: 650; margin-block: 12px 7px; }
 .front-document-customer { margin-bottom: 20px; font-size: 13px; }

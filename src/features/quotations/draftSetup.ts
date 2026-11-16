@@ -6,17 +6,19 @@ import { todayISO } from '../../domain/quotation/records'
 import type { Adjustment, Quotation, QuoteItem } from '../../domain/quotation/types'
 import type { SemanticKey } from '../../domain/template/types'
 import type { TemplateSummary, TemplateVersionRecord } from '../../domain/template/records'
+import { BUSINESS_LAYOUT, businessLetterhead } from '../../domain/quotation/letterhead'
 import type { NewQuotation } from '../../infrastructure/storage/quotationRepository'
 
 /** Templates whose active version can fill quotations. */
 export const readyTemplates = (templates: TemplateSummary[]) => templates.filter(({ active }) => active)
 
 /** A blank draft carrying the business's own defaults, never another business's details. */
-export function blankDraft(business: BusinessRecord, summary: TemplateSummary): NewQuotation {
+export function blankDraft(business: BusinessRecord, summary?: TemplateSummary, adaptive = !summary): NewQuotation {
   return {
     businessId: business.id,
-    templateId: summary.template.id,
-    templateVersionId: summary.active!.id,
+    templateId: summary?.template.id ?? BUSINESS_LAYOUT,
+    templateVersionId: (summary?.active ?? summary?.version)?.id ?? BUSINESS_LAYOUT,
+    letterhead: adaptive ? businessLetterhead(business) : undefined,
     quoteDateISO: todayISO(),
     customerName: '',
     items: [],
@@ -27,8 +29,8 @@ export function blankDraft(business: BusinessRecord, summary: TemplateSummary): 
   }
 }
 
-export function draftFromText(text: string, business: BusinessRecord, summary: TemplateSummary): NewQuotation {
-  const defaults = blankDraft(business, summary)
+export function draftFromText(text: string, business: BusinessRecord, summary?: TemplateSummary, adaptive = !summary): NewQuotation {
+  const defaults = blankDraft(business, summary, adaptive)
   const parse = parseQuotationText(text)
   // The repository gives the draft its id.
   const parsed: Partial<Quotation> = quotationFromParse(parse, text, { ...defaults, id: '' })
