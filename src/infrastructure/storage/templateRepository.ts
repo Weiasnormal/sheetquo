@@ -2,7 +2,9 @@ import type { Diagnostic } from '../../domain/template/diagnostics'
 import type { MappingDraft } from '../../domain/template/mappingDraft'
 import type { TemplateRecord, TemplateSummary, TemplateTestResult, TemplateVersionRecord } from '../../domain/template/records'
 import type { Region } from '../../domain/template/region'
+import { BUSINESS_LAYOUT } from '../../domain/quotation/letterhead'
 import { db } from './db'
+import { snapshotLetterhead } from './quotationRepository'
 import { sha256 } from './hash'
 import { attempt, now, StorageFailure } from './storageResult'
 
@@ -160,6 +162,44 @@ export function restoreTemplate(id: string) {
       await db.templates.update(id, { archivedAt: undefined, updatedAt: now() })
     }),
   )
+}
+
+/**
+ * Removes a template for good: every version and both workbook files of each. Quotations made with it
+ * switch to the business letterhead so they still open and download, and the business forgets it as a choice.
+ */
+export function deleteTemplate(id: string) {
+  return attempt(() =>
+    db.transaction('rw', [db.businesses, db.templates, db.templateVersions, db.blobs, db.quotations], async () => {
+      const template = await db.templates.get(id)
+      if (!template) throw new StorageFailure('NOT_FOUND', 'This template is no longer saved in this browser.')
+      const versions = await db.templateVersions.where('templateId').equals(id).toArray()
+      await db.blobs.bulkDelete(versions.flatMap(({ originalBlobId, sourceBlobId }) => [originalBlobId, sourceBlobId]))
+      await db.templateVersions.bulkDelete(versions.map(({ id: versionId }) => versionId))
+      await db.templates.delete(id)
+
+      const business = await db.businesses.get(template.businessId)
+      if (!business) return
+      const quotations = await db.quotations.where('businessId').equals(business.id).filter((quote) => quote.templateId === id).toArray()
+      const timestamp = now()
+      for (const quote of quotations) {
+        await db.quotations.put({ ...quote, templateId: BUSINESS_LAYOUT, templateVersionId: BUSINESS_LAYOUT,
+          letterhead: quote.letterhead ?? (await snapshotLetterhead(business)), updatedAt: timestamp })
+      }
+      if (business.defaultTemplateId === id || business.lastTemplateId === id) {
+        await db.businesses.update(business.id, {
+          defaultTemplateId: business.defaultTemplateId === id ? undefined : business.defaultTemplateId,
+          lastTemplateId: business.lastTemplateId === id ? undefined : business.lastTemplateId,
+          updatedAt: timestamp,
+        })
+      }
+    }),
+  )
+}
+
+/** How many saved quotations were made with a template, for the delete confirmation. */
+export function countTemplateQuotations(template: Pick<TemplateRecord, 'id' | 'businessId'>): Promise<number> {
+  return db.quotations.where('businessId').equals(template.businessId).filter((quote) => quote.templateId === template.id).count()
 }
 
 /** Every template of one business, archived ones included, each with its versions. */

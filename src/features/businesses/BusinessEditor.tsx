@@ -17,7 +17,9 @@ import type { BusinessFormErrors, BusinessFormValues, BusinessRecord } from '../
 import { checkLogo, toDataUrl } from '../../domain/business/logo'
 import {
   archiveBusiness,
+  countBusinessData,
   createBusiness,
+  deleteBusiness,
   restoreBusiness,
   updateBusiness,
 } from '../../infrastructure/storage/businessRepository'
@@ -37,6 +39,7 @@ export function BusinessEditor({ business }: { business?: BusinessRecord }) {
   const [saveError, setSaveError] = useState<string>()
   const [saving, setSaving] = useState(false)
   const [confirmArchive, setConfirmArchive] = useState(false)
+  const [deleting, setDeleting] = useState<{ templates: number; quotations: number } | null>(null)
 
   const dirty =
     logoChange.kind !== 'keep' ||
@@ -123,6 +126,23 @@ export function BusinessEditor({ business }: { business?: BusinessRecord }) {
     }
     finished.current = true
     toast.success('Business archived', { description: business.displayName })
+    navigate('/businesses')
+  }
+
+  async function askDelete() {
+    if (!business) return
+    setDeleting(await countBusinessData(business.id))
+  }
+
+  async function remove() {
+    if (!business) return
+    const result = await deleteBusiness(business.id)
+    if (!result.ok) {
+      toast.error(result.error.message)
+      return
+    }
+    finished.current = true
+    toast.success('Business deleted', { description: business.displayName })
     navigate('/businesses')
   }
 
@@ -254,6 +274,29 @@ export function BusinessEditor({ business }: { business?: BusinessRecord }) {
       )}
 
       {business && (
+        <Panel data-wiwo="business-delete" aria-labelledby="delete-title" className="flex flex-wrap items-center justify-between gap-4 p-5 lg:col-start-1">
+          <div className="max-w-md">
+            <PanelTitle id="delete-title">Delete business</PanelTitle>
+            <p className="mt-1 text-muted">Removes it from this browser for good, with its logo, templates, and saved quotations. Excel files you already downloaded are not affected.</p>
+          </div>
+          <Button variant="danger" onClick={() => void askDelete()}>
+            Delete business
+          </Button>
+        </Panel>
+      )}
+
+      {business && (
+        <ConfirmDialog
+          open={deleting !== null}
+          onOpenChange={(open) => { if (!open) setDeleting(null) }}
+          title={`Delete ${business.displayName}?`}
+          description={`This cannot be undone. It also deletes ${plural(deleting?.templates ?? 0, 'template')} and ${plural(deleting?.quotations ?? 0, 'saved quotation')}. Export a backup first if you might want them back.`}
+          confirmLabel="Delete for good"
+          onConfirm={() => void remove()}
+        />
+      )}
+
+      {business && (
         <ConfirmDialog
           open={confirmArchive}
           onOpenChange={setConfirmArchive}
@@ -281,4 +324,8 @@ export function BusinessEditor({ business }: { business?: BusinessRecord }) {
       />
     </div>
   )
+}
+
+function plural(count: number, noun: string) {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`
 }
