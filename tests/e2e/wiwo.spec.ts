@@ -15,7 +15,8 @@ async function room(page: Page) { await card(page).getByRole('button', { name: '
 async function expand(page: Page) {
   await expect(card(page)).toBeVisible()
   const button = card(page).getByRole('button', { name: 'Show full step' })
-  if (await button.count()) await button.click()
+  // The compact view can close itself (for example when the chapter pauses) between the check and the click.
+  if (await button.count()) await button.click({ timeout: 2_000 }).catch(() => undefined)
 }
 async function restore(page: Page) {
   await page.goto('/settings')

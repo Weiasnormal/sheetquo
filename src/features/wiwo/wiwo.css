@@ -1,45 +1,93 @@
-.wiwo-launcher { position: fixed; top: 6px; right: 64px; z-index: 55; }
-.wiwo-toggle { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; width: 44px; height: 44px; border: 1px solid var(--sheetquo-control); border-radius: 10px; background: var(--sheetquo-white); color: var(--sheetquo-charcoal); cursor: pointer; }
+/* Launcher: sits in the page header slot; floats in the corner only on pages without one. */
+.wiwo-launcher { position: relative; z-index: 55; }
+.wiwo-launcher[data-floating] { position: fixed; top: 10px; right: 12px; }
+.wiwo-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; min-width: 36px; padding: 0 9px; border: 1px solid var(--sheetquo-control); border-radius: 10px; background: var(--sheetquo-white); color: var(--sheetquo-charcoal); font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color 150ms ease-out; }
 .wiwo-toggle:hover { background: var(--sheetquo-lime-tint); }
 .wiwo-toggle[aria-pressed='true'] { background: var(--sheetquo-lime); border-color: var(--sheetquo-charcoal); }
+.wiwo-toggle-icon { position: relative; display: inline-flex; }
 .wiwo-button-name { display: none; }
-.wiwo-sleep-mark { position: absolute; top: 4px; right: 4px; }
-.wiwo-cursor-icon { transform-origin: 50% 70%; }
+.wiwo-sleep-mark { position: absolute; top: -5px; right: -7px; }
+.wiwo-cursor-icon { transform-origin: 30% 30%; }
 .wiwo-toggle[data-sleeping][data-animate] .wiwo-cursor-icon { animation: wiwo-sleep 4s ease-in-out infinite; }
 .wiwo-launcher[data-hidden] .wiwo-cursor-icon { animation-play-state: paused; }
 .wiwo-toggle:hover .wiwo-cursor-icon, .wiwo-toggle:focus-visible .wiwo-cursor-icon { animation-play-state: paused; }
 @keyframes wiwo-sleep { 0%, 100% { transform: rotate(-8deg) translateY(1px); } 50% { transform: rotate(-3deg) translateY(-1px); } }
-.wiwo-offer { position: absolute; top: 52px; right: -48px; width: min(292px, calc(100vw - 24px)); border-radius: 14px; background: var(--sheetquo-white); padding: 16px; box-shadow: 0 6px 24px #18221c24; }
-.wiwo-offer > .wiwo-close { position: absolute; top: 5px; right: 5px; }
-.wiwo-card { position: fixed; z-index: 54; padding: 18px; border-radius: 16px; background: var(--sheetquo-white); color: var(--sheetquo-charcoal); box-shadow: 0 8px 32px #18221c30; max-height: min(620px, calc(100dvh - 88px)); overflow-y: auto; overscroll-behavior: contain; }
-.wiwo-highlight { position: fixed; z-index: 51; border: 2px solid var(--sheetquo-charcoal); outline: 3px solid var(--sheetquo-lime); border-radius: 8px; pointer-events: none; }
-.wiwo-pointer { position: fixed; z-index: 52; pointer-events: none; fill: var(--sheetquo-lime); color: var(--sheetquo-charcoal); transition: left 180ms ease-out, top 180ms ease-out; }
-.wiwo-close { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; border-radius: 8px; cursor: pointer; }
-.wiwo-close:hover, .wiwo-secondary:hover { background: var(--sheetquo-rule); }
-.wiwo-text-button { display: inline-flex; min-height: 36px; align-items: center; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.wiwo-chapter { display: block; width: 100%; min-width: 0; min-height: 40px; border: 1px solid var(--sheetquo-control); border-radius: 8px; padding: 6px 8px; background: var(--sheetquo-white); font-size: 14px; }
-.wiwo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.wiwo-primary, .wiwo-secondary { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 3px; border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+@media (min-width: 640px) {
+  .wiwo-toggle { padding: 0 12px 0 10px; }
+  .wiwo-button-name { display: inline; }
+}
+@media (pointer: coarse) { .wiwo-toggle { height: 44px; min-width: 44px; } }
+
+/* Shared arrow: charcoal body with a white rim and soft shadow. */
+.wiwo-arrow-rim { fill: none; stroke: var(--sheetquo-white); stroke-width: 3.5px; stroke-linejoin: round; }
+.wiwo-arrow-body { fill: currentColor; stroke: currentColor; stroke-width: 1.5px; stroke-linejoin: round; }
+.wiwo-toggle[aria-pressed='true'] .wiwo-arrow-rim { stroke: var(--sheetquo-lime); }
+
+.wiwo-offer { position: absolute; top: calc(100% + 8px); right: 0; width: min(280px, calc(100vw - 24px)); border-radius: 14px; background: var(--sheetquo-white); padding: 14px; box-shadow: 0 6px 24px #18221c24; }
+.wiwo-offer > .wiwo-close { position: absolute; top: 4px; right: 4px; }
+
+/* Guide cursor: glides between targets and carries a name tag that speaks the step title. */
+.wiwo-cursor { position: fixed; top: 0; left: 0; z-index: 53; pointer-events: none; opacity: 0; color: var(--sheetquo-charcoal); will-change: transform; transition: transform 520ms cubic-bezier(.22, 1, .36, 1), opacity 300ms ease-out; }
+.wiwo-cursor[data-here] { opacity: 1; }
+.wiwo-cursor-arrow { position: absolute; top: -3px; left: -4px; overflow: visible; filter: drop-shadow(0 2px 3px #18221c40); }
+.wiwo-tag { position: absolute; top: 0; left: 0; display: inline-flex; flex-direction: column; align-items: flex-start; padding: 3px 9px 4px; border-radius: 5px 13px 13px; background: var(--sheetquo-lime); color: var(--sheetquo-charcoal-deep); box-shadow: 0 8px 20px -10px #18221c80; transform: translate(14px, 18px); transition: transform 320ms cubic-bezier(.3, 1.2, .4, 1), border-radius 300ms; }
+.wiwo-cursor[data-left] .wiwo-tag { border-radius: 13px 5px 13px 13px; transform: translate(calc(-100% - 2px), 18px); }
+.wiwo-cursor[data-up] .wiwo-tag { border-radius: 13px 13px 13px 5px; transform: translate(14px, calc(-100% - 2px)); }
+.wiwo-cursor[data-up][data-left] .wiwo-tag { border-radius: 13px 13px 5px; transform: translate(calc(-100% - 2px), calc(-100% - 2px)); }
+.wiwo-tag-name { font-size: 11px; font-weight: 700; line-height: 1.4; letter-spacing: .01em; }
+.wiwo-tag[data-talking] .wiwo-tag-name { opacity: .6; }
+.wiwo-tag-text { width: max-content; max-width: 200px; font-size: 12.5px; font-weight: 550; line-height: 1.4; }
+.wiwo-tag-rest { opacity: 0; }
+
+.wiwo-highlight { position: fixed; z-index: 51; border: 1.5px solid var(--sheetquo-lime-dark); border-radius: 10px; background: var(--sheetquo-lime-tint); mix-blend-mode: multiply; box-shadow: 0 0 0 4px color-mix(in srgb, var(--sheetquo-lime) 30%, transparent); pointer-events: none; transition: left 420ms cubic-bezier(.22, 1, .36, 1), top 420ms cubic-bezier(.22, 1, .36, 1), width 420ms cubic-bezier(.22, 1, .36, 1), height 420ms cubic-bezier(.22, 1, .36, 1); }
+
+/* Card */
+.wiwo-card { position: fixed; z-index: 54; padding: 14px; border-radius: 14px; background: var(--sheetquo-white); color: var(--sheetquo-charcoal); box-shadow: 0 8px 32px #18221c30; overflow-y: auto; overscroll-behavior: contain; }
+.wiwo-card-title { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 650; }
+.wiwo-close { display: inline-flex; align-items: center; justify-content: center; height: 32px; width: 32px; margin: -6px -6px -6px 0; border-radius: 8px; cursor: pointer; }
+.wiwo-close:hover, .wiwo-secondary:hover, .wiwo-icon-button:hover { background: var(--sheetquo-rule); }
+.wiwo-text-button { display: inline-flex; min-height: 32px; align-items: center; font-size: 12.5px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+.wiwo-chapter-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.wiwo-select { position: relative; flex: 1; min-width: 0; }
+.wiwo-chapter { display: block; width: 100%; height: 36px; padding: 0 34px 0 12px; border: 1px solid var(--sheetquo-control); border-radius: 8px; background: var(--sheetquo-white); font-size: 13px; line-height: 34px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; appearance: none; -webkit-appearance: none; cursor: pointer; }
+.wiwo-select > svg { position: absolute; top: 50%; right: 11px; transform: translateY(-50%); color: var(--sheetquo-slate); pointer-events: none; }
+
+.wiwo-meta { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--sheetquo-slate); }
+.wiwo-icon-button { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; color: var(--sheetquo-charcoal); cursor: pointer; }
+.wiwo-timer { height: 2px; margin-top: 6px; border-radius: 2px; background: var(--sheetquo-rule); overflow: hidden; }
+.wiwo-timer > span { display: block; height: 100%; background: var(--sheetquo-lime-dark); transform-origin: left; animation: wiwo-timer linear forwards; animation-play-state: paused; }
+.wiwo-timer > span[data-running] { animation-play-state: running; }
+.wiwo-card:hover .wiwo-timer > span, .wiwo-card:has(select:focus) .wiwo-timer > span { animation-play-state: paused; }
+@keyframes wiwo-timer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.wiwo-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.wiwo-primary, .wiwo-secondary { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: 3px; border-radius: 9px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .wiwo-primary { background: var(--sheetquo-lime); color: var(--sheetquo-charcoal); margin-left: auto; }
 .wiwo-primary:hover { background: var(--sheetquo-lime-hover); }
 .wiwo-secondary { border: 1px solid var(--sheetquo-control); }
 .wiwo-primary:disabled, .wiwo-secondary:disabled { cursor: not-allowed; color: var(--sheetquo-slate); background: var(--sheetquo-rule); }
-.wiwo-loading { position: fixed; right: 16px; bottom: 16px; max-width: calc(100vw - 32px); padding: 16px; background: var(--sheetquo-white); border: 1px solid var(--sheetquo-control); border-radius: 12px; z-index: 54; }
-.wiwo-modal-note { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--sheetquo-border); }
-.wiwo-guiding #main { padding-bottom: 380px; }
-[data-wiwo] { scroll-margin-top: 84px; }
-@media (min-width: 1024px) {
-  .wiwo-launcher { top: 10px; right: 24px; }
-  .wiwo-toggle { width: auto; padding: 0 14px; }
-  .wiwo-button-name { display: inline; font-size: 13px; font-weight: 600; }
-  .wiwo-sleep-mark { right: auto; left: 26px; }
-  .wiwo-offer { right: 0; }
+.wiwo-help-link { display: inline-block; margin-top: 10px; font-size: 12px; color: var(--sheetquo-slate); text-decoration: underline; text-underline-offset: 2px; }
+.wiwo-help-link:hover { color: var(--sheetquo-charcoal); }
+
+@media (pointer: coarse) {
+  .wiwo-close { height: 44px; width: 44px; margin: -10px -10px -10px 0; }
+  .wiwo-primary, .wiwo-secondary, .wiwo-chapter { min-height: 44px; height: auto; }
+  .wiwo-chapter { line-height: 42px; }
+  .wiwo-icon-button { width: 36px; height: 36px; }
+  .wiwo-text-button { min-height: 44px; }
 }
+
+.wiwo-loading { position: fixed; right: 16px; bottom: 16px; max-width: calc(100vw - 32px); padding: 14px; font-size: 13px; background: var(--sheetquo-white); border: 1px solid var(--sheetquo-control); border-radius: 12px; z-index: 54; }
+.wiwo-modal-note { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--sheetquo-border); }
+.wiwo-guiding #main { padding-bottom: 340px; }
+[data-wiwo] { scroll-margin-top: 84px; }
 @media (max-width: 767px) {
-  .wiwo-card { max-height: min(440px, 52dvh); padding: 14px; }
-  .wiwo-guiding #main { padding-bottom: 55dvh; }
+  .wiwo-card { padding: 12px 14px; }
+  .wiwo-tag-text { max-width: 160px; }
+  .wiwo-guiding #main { padding-bottom: 48dvh; }
 }
 @media (prefers-reduced-motion: reduce) {
   .wiwo-toggle[data-sleeping][data-animate] .wiwo-cursor-icon { animation: none; }
-  .wiwo-pointer { transition: none; }
+  .wiwo-cursor, .wiwo-tag, .wiwo-highlight { transition: none; }
 }
