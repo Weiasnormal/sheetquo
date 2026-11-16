@@ -1,4 +1,7 @@
 import type { QuotationRecord } from '../../domain/quotation/records'
+import { BUSINESS_LAYOUT, businessLetterhead } from '../../domain/quotation/letterhead'
+import { toDataUrl } from '../../domain/business/logo'
+import type { Business } from '../../domain/quotation/types'
 import { db } from './db'
 import { attempt, now, StorageFailure } from './storageResult'
 
@@ -12,20 +15,33 @@ async function requireQuotation(id: string) {
   return quotation
 }
 
+async function snapshotLetterhead(business: Business, useTemplateLogo?: boolean) {
+  const header = businessLetterhead(business)
+  header.useTemplateLogo = useTemplateLogo
+  if (business.logoBlobId) {
+    const logo = await db.blobs.get(business.logoBlobId)
+    if (!logo) throw new StorageFailure('NOT_FOUND', 'The saved business logo is missing. Upload it again in Businesses.')
+    header.logo = toDataUrl(logo.bytes, logo.type)
+  }
+  return header
+}
+
 /** Starts a draft for an active business, using a version of one of that business's own templates. */
 export function createQuotation(input: NewQuotation) {
   return attempt(() =>
-    db.transaction('rw', [db.businesses, db.templateVersions, db.quotations], async () => {
+    db.transaction('rw', [db.businesses, db.templateVersions, db.quotations, db.blobs], async () => {
       const business = await db.businesses.get(input.businessId)
       if (!business || business.archivedAt) {
         throw new StorageFailure('NOT_FOUND', 'This business is no longer active, so the quotation was not started.')
       }
       const version = await db.templateVersions.get(input.templateVersionId)
-      if (!version || version.businessId !== input.businessId || version.templateId !== input.templateId) {
+      const builtIn = input.letterhead && input.templateId === BUSINESS_LAYOUT && input.templateVersionId === BUSINESS_LAYOUT
+      if (!builtIn && (!version || version.businessId !== input.businessId || version.templateId !== input.templateId)) {
         throw new StorageFailure('NOT_FOUND', 'This template is no longer saved for this business.')
       }
       const timestamp = now()
       const record: QuotationRecord = { ...input, id: crypto.randomUUID(), createdAt: timestamp, updatedAt: timestamp }
+      if (record.letterhead) record.letterhead = await snapshotLetterhead(business, record.letterhead.useTemplateLogo)
       await db.quotations.add(record)
       return record
     }),
@@ -57,9 +73,9 @@ export async function listQuotations(businessId: string, limit?: number): Promis
 }
 
 /** A copy to quote again. The quotation number is cleared, so two files never share one by accident. */
-export function duplicateQuotation(id: string) {
+export function duplicateQuotation(id: string, adaptive = false) {
   return attempt(() =>
-    db.transaction('rw', db.quotations, async () => {
+    db.transaction('rw', [db.quotations, db.businesses, db.blobs], async () => {
       const source = await requireQuotation(id)
       const timestamp = now()
       const copy: QuotationRecord = {
@@ -70,6 +86,11 @@ export function duplicateQuotation(id: string) {
         generatedFilename: undefined,
         createdAt: timestamp,
         updatedAt: timestamp,
+      }
+      if (adaptive || source.letterhead) {
+        const business = await db.businesses.get(source.businessId)
+        if (!business || business.archivedAt) throw new StorageFailure('NOT_FOUND')
+        copy.letterhead = await snapshotLetterhead(business, source.letterhead?.useTemplateLogo)
       }
       await db.quotations.add(copy)
       return copy

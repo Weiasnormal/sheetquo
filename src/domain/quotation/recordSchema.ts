@@ -1,3 +1,4 @@
+import { letterheadSchema } from './letterhead'
 import { z } from 'zod'
 import type { QuotationRecord } from './records'
 
@@ -13,7 +14,7 @@ const parsedAdjustment = z.object({
 
 /** Drafts may be incomplete, but their structure must be safe for the editor and parser review. */
 export const quotationRecordSchema: z.ZodType<QuotationRecord> = z.object({
-  id, businessId: id, templateId: id, templateVersionId: id,
+  id, businessId: id, templateId: id, templateVersionId: id, letterhead: letterheadSchema.optional(),
   quoteNumber: optionalText, quoteDateISO: text, customerName: text,
   customerAddress: optionalText, customerTIN: optionalText, vehicle: optionalText,
   engine: optionalText, plate: optionalText, chassis: optionalText,
