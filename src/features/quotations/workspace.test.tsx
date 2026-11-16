@@ -82,6 +82,9 @@ describe('quotation workspace', () => {
     renderAt('/quotation/new')
 
     await user.click(await screen.findByRole('textbox', { name: 'Customer’s message' }))
+    const layouts = screen.getByRole('combobox', {name: 'Quotation layout'})
+    await user.selectOptions(layouts, within(layouts).getByRole('option', {name: /fixed Excel form/}))
+    await user.click(screen.getByRole('textbox', { name: 'Customer’s message' }))
     await user.paste(FIXTURE_ONE)
     await user.click(screen.getByRole('button', { name: 'Extract details' }))
 

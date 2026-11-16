@@ -29,7 +29,7 @@ function targetOf({ code, itemId }: QuotationIssue): string | undefined {
 }
 
 /** The quotation's own checks, plus what the chosen template version can and cannot print. */
-export function workspaceIssues(quotation: Quotation & { parse?: ParseResult; answeredLines?: number[] }, version: TemplateVersionRecord | undefined): WorkspaceIssue[] {
+export function workspaceIssues(quotation: Quotation & { parse?: ParseResult; answeredLines?: number[]; letterhead?: import('../../domain/quotation/letterhead').Letterhead }, version: TemplateVersionRecord | undefined): WorkspaceIssue[] {
   const issues: WorkspaceIssue[] = checkQuotation(quotation).map((issue) => ({ ...issue, target: targetOf(issue) }))
 
   // Flagged lines never block, since they stay out of the quotation, but the owner should not miss them.
@@ -38,6 +38,7 @@ export function workspaceIssues(quotation: Quotation & { parse?: ParseResult; an
     const lines = waiting === 1 ? '1 line from the message is' : `${waiting} lines from the message are`
     issues.push({ severity: 'warning', code: 'LINES_WAITING', message: `${lines} waiting for your choice.`, target: '#source-lines' })
   }
+  if (quotation.letterhead) return issues
   const definition = version?.mapping ? toDefinition(version.mapping) : undefined
   if (!version) {
     issues.push({ severity: 'error', code: 'TEMPLATE_MISSING', message: 'The template for this quotation is no longer saved. Choose another.' })

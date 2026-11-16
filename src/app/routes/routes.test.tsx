@@ -93,7 +93,7 @@ describe('first-run honesty', () => {
 
   it('blocks a new quotation until setup is done, and links to it', async () => {
     renderAt('/quotation/new')
-    expect(await screen.findByRole('heading', { name: 'Add a business and a template first' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Add your business first' })).toBeInTheDocument()
     expect(screen.getByText('Paste').parentElement).toHaveAttribute('aria-current', 'step')
   })
 

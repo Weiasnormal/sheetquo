@@ -24,7 +24,7 @@ export function RecentQuotations({ businessId, currency }: { businessId?: string
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{quotationTitle(quotation)}</span>
                   <span className="tabular block text-muted">
-                    {formatDate(quotation.updatedAt)} · {formatMoney(computeTotals(quotation).grandTotalMinor, currency)}
+                    {formatDate(quotation.updatedAt)} · {formatMoney(computeTotals(quotation).grandTotalMinor, quotation.letterhead?.currency ?? currency)}
                   </span>
                 </span>
                 <span className="flex flex-none items-center gap-2">

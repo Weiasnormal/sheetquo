@@ -20,6 +20,7 @@ import { selectBusiness } from '../../infrastructure/storage/businessRepository'
 import { deleteQuotation, duplicateQuotation } from '../../infrastructure/storage/quotationRepository'
 import { AdjustmentsEditor } from './AdjustmentsEditor'
 import { DetailsSection } from './DetailsForm'
+import { ALL_FIELDS } from '../../domain/template/fields'
 import { draftTemplate, extractInto, mappedFields, readyTemplates } from './draftSetup'
 import { GeneratePanel } from './GeneratePanel'
 import { ItemsEditor } from './ItemsEditor'
@@ -89,11 +90,11 @@ function Editor({ initial, business, templates }: { initial: QuotationRecord; bu
 
   const { summary, version, newerActive } = draftTemplate(record, templates)
   const ready = readyTemplates(templates.filter(({ template }) => !template.archivedAt))
-  const templateLabel = summary && version ? `${summary.template.name}, version ${version.version}` : 'No template'
+  const templateLabel = record.letterhead ? (summary ? summary.template.name + ' · adaptive' : 'Business letterhead') : summary && version ? `${summary.template.name}, version ${version.version}` : 'No template'
   const totals = computeTotals(record)
   const issues = workspaceIssues(record, version)
   const errorCount = issues.filter(({ severity }) => severity === 'error').length
-  const mapped = mappedFields(version)
+  const mapped = record.letterhead ? new Set(ALL_FIELDS.map(field => field.key)) : mappedFields(version)
   const patch = (fields: Partial<QuotationRecord>) => change((current) => ({ ...current, ...fields }))
 
   function focusIssue({ target }: WorkspaceIssue) {
@@ -110,9 +111,9 @@ function Editor({ initial, business, templates }: { initial: QuotationRecord; bu
     navigate(href('review'))
   }
 
-  async function duplicate() {
+  async function duplicate(adaptive = false) {
     if (!(await flush())) return toast.error('Save the draft before making a copy')
-    const copy = await duplicateQuotation(record.id)
+    const copy = await duplicateQuotation(record.id, adaptive)
     if (!copy.ok) return toast.error(copy.error.message)
     toast.success('Copy made', { description: 'The quotation number was cleared so the two never share one.' })
     navigate(`/quotation/${copy.value.id}?step=review`)
@@ -146,6 +147,7 @@ function Editor({ initial, business, templates }: { initial: QuotationRecord; bu
               <Copy strokeWidth={1.75} aria-hidden="true" />
               Duplicate
             </Button>
+            {!record.letterhead && <Button variant="secondary" onClick={() => void duplicate(true)}>Make adaptive copy</Button>}
             <Button variant="danger" onClick={() => setConfirm('delete')}>
               <Trash2 strokeWidth={1.75} aria-hidden="true" />
               Delete
@@ -189,7 +191,7 @@ function Editor({ initial, business, templates }: { initial: QuotationRecord; bu
       {step === 'review' && (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
           <div className="flex min-w-0 flex-col gap-4">
-            {(newerActive || ready.length > 1 || !version) && (
+            {!record.letterhead && (newerActive || ready.length > 1 || !version) && (
               <Panel aria-labelledby="template-title" className="flex flex-col gap-3 p-5">
                 <PanelTitle id="template-title">Template</PanelTitle>
                 {ready.length > 0 && (
@@ -244,7 +246,7 @@ function Editor({ initial, business, templates }: { initial: QuotationRecord; bu
               onChange={(update) => change((current) => ({ ...current, items: update(current.items) }))}
             />
             <AdjustmentsEditor
-              currency={business.currency}
+              currency={record.letterhead?.currency ?? business.currency}
               adjustments={record.adjustments}
               totals={totals.adjustments}
               issues={issues}
@@ -258,7 +260,7 @@ function Editor({ initial, business, templates }: { initial: QuotationRecord; bu
             <QuoteSummary
               quotation={record}
               totals={totals}
-              currency={business.currency}
+              currency={record.letterhead?.currency ?? business.currency}
               templateLabel={templateLabel}
               issues={issues}
               onFocus={focusIssue}

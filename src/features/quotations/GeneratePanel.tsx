@@ -11,6 +11,9 @@ import { quotationFilename } from '../../domain/quotation/filename'
 import type { QuotationRecord } from '../../domain/quotation/records'
 import type { TemplateVersionRecord } from '../../domain/template/records'
 import { recordGenerated } from '../../infrastructure/storage/quotationRepository'
+import { AdaptivePreview } from './AdaptivePreview'
+import { useAdaptivePreview } from './useAdaptivePreview'
+import { downloadXlsx } from '../../infrastructure/downloads/downloadBytes'
 import { generateQuotation } from './generateQuotation'
 import { IssueList } from './QuoteSummary'
 import type { WorkspaceIssue } from './workspaceIssues'
@@ -41,10 +44,13 @@ export function GeneratePanel(props: GeneratePanelProps) {
   const [running, setRunning] = useState(false)
   const [result, setResult] = useState<WorkspaceIssue[]>([])
   const blocked = issues.some(({ severity }) => severity === 'error')
+  const preview = useAdaptivePreview(record, version, blocked)
+  const filenameBusiness = {displayName: record.letterhead?.name ?? business.displayName}
   const changedSince = record.generatedAt !== undefined && record.updatedAt > record.generatedAt
 
   async function generate() {
-    if (!version) return
+    const output = preview?.output
+    if (record.letterhead ? !output : !version) return
     setRunning(true)
     try {
       // The file is made from what is saved, so the draft and the download never differ.
@@ -52,7 +58,9 @@ export function GeneratePanel(props: GeneratePanelProps) {
         toast.error('Could not save the draft, so nothing was generated')
         return
       }
-      const outcome = await generateQuotation(record, business, version)
+      const filename = quotationFilename(filenameBusiness, record)
+      const outcome = output ? { ok: true as const, filename, diagnostics: [] } : await generateQuotation(record, business, version!)
+      if (output) downloadXlsx(output.bytes, filename)
       setResult(outcome.diagnostics.flatMap(({ severity, code, message }) => (severity === 'info' ? [] : [{ severity, code, message }])))
       if (!outcome.ok) {
         toast.error('The Excel file was not made')
@@ -77,17 +85,16 @@ export function GeneratePanel(props: GeneratePanelProps) {
           <div>
             <PanelTitle id="generate-title">Make the Excel file</PanelTitle>
             <p className="mt-1 text-muted">
-              Sheetquo fills a new copy of your template. The template itself never changes, and the file is yours to
-              edit, print, or save as PDF in Excel.
+              {record.letterhead ? 'Review the letterhead, items and totals below. Download this layout to edit or print in Excel.' : 'Download a new copy of your mapped form to edit or print in Excel.'}
             </p>
           </div>
         </div>
 
         <dl className="grid gap-3 rounded-button bg-ground p-4 sm:grid-cols-2">
-          <Fact label="Business" value={business.displayName} />
+          <Fact label="Business" value={record.letterhead?.name ?? business.displayName} />
           <Fact label="Template" value={templateLabel} />
-          <Fact label="File name" value={quotationFilename(business, record)} />
-          <Fact label="Grand total" value={formatMoney(grandTotalMinor, business.currency)} />
+          <Fact label="File name" value={quotationFilename(filenameBusiness, record)} />
+          <Fact label="Grand total" value={formatMoney(grandTotalMinor, record.letterhead?.currency ?? business.currency)} />
         </dl>
 
         <IssueList issues={blocked ? issues : [...issues, ...result]} />
@@ -98,7 +105,7 @@ export function GeneratePanel(props: GeneratePanelProps) {
               <Link to={reviewHref}>Back to review</Link>
             </Button>
           ) : (
-            <Button data-wiwo="generate-button" onClick={() => void generate()} disabled={running}>
+            <Button data-wiwo="generate-button" onClick={() => void generate()} disabled={running || Boolean(record.letterhead && !preview?.output)}>
               <Download strokeWidth={1.75} aria-hidden="true" />
               {running ? 'Making the file…' : record.generatedAt ? 'Generate again' : 'Generate Excel'}
             </Button>
@@ -111,6 +118,7 @@ export function GeneratePanel(props: GeneratePanelProps) {
         </div>
       </Panel>
 
+      {record.letterhead && !blocked && (preview?.output ? <AdaptivePreview output={preview.output}/> : <p role="status">{preview?.error ?? 'Preparing quotation preview…'}</p>)}
       <p className="px-1 text-xs text-muted">
         Open the file in Excel Desktop or Excel Online to check it before sending. Excel recalculates the totals when it
         opens, so editing a quantity there updates them.
@@ -120,7 +128,7 @@ export function GeneratePanel(props: GeneratePanelProps) {
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted">
           <li>Open the downloaded file in Excel Desktop, or upload it to Excel Online.</li>
           <li>Open Print Preview and check the descriptions, totals, signatures, and repeated table heading.</li>
-          <li>Print, or choose Excel’s PDF export. Paper size and margins come from this template version.</li>
+          <li>Print, or choose Excel’s PDF export. Check your paper size and margins before printing.</li>
         </ol>
       </Panel>
     </div>
