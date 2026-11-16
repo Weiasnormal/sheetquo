@@ -190,6 +190,6 @@ describe('templates and businesses', () => {
     await selectBusiness(owner.id)
     renderAt('/dashboard')
     expect(await screen.findByText('2 of 3 done')).toBeInTheDocument()
-    expect(screen.getByText('Map and test your template to start quoting.')).toBeInTheDocument()
+    expect(screen.getByText('Your imported design is available for adaptive quotations. Mapping is optional.')).toBeInTheDocument()
   })
 })
