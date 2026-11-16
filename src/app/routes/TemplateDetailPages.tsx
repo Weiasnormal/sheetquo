@@ -21,6 +21,8 @@ import { describeRegion } from '../../domain/template/region'
 import { selectBusiness } from '../../infrastructure/storage/businessRepository'
 import {
   archiveTemplate,
+  countTemplateQuotations,
+  deleteTemplate,
   readTemplateDetail,
   restoreTemplate,
 } from '../../infrastructure/storage/templateRepository'
@@ -166,6 +168,40 @@ function ArchiveControls({ detail }: { detail: TemplateDetail }) {
   )
 }
 
+function DeleteControls({ detail }: { detail: TemplateDetail }) {
+  const navigate = useNavigate()
+  const [quotations, setQuotations] = useState<number | null>(null)
+  const { template } = detail
+
+  async function remove() {
+    const result = await deleteTemplate(template.id)
+    if (!result.ok) return toast.error(result.error.message)
+    toast.success('Template deleted', { description: template.name })
+    navigate('/templates')
+  }
+
+  const using = quotations === 1 ? '1 saved quotation uses it and will' : `${quotations ?? 0} saved quotations use it and will`
+  return (
+    <Panel data-wiwo="template-delete" aria-labelledby="delete-title" className="flex flex-wrap items-center justify-between gap-4 p-5">
+      <div className="max-w-md">
+        <PanelTitle id="delete-title">Delete template</PanelTitle>
+        <p className="mt-1 text-muted">Removes it and every version from this browser for good. Quotations made with it switch to your business letterhead.</p>
+      </div>
+      <Button variant="danger" onClick={() => void countTemplateQuotations(template).then(setQuotations)}>
+        Delete template
+      </Button>
+      <ConfirmDialog
+        open={quotations !== null}
+        onOpenChange={(open) => { if (!open) setQuotations(null) }}
+        title={`Delete ${template.name}?`}
+        description={`This cannot be undone. Its versions and uploaded workbooks are removed.${quotations ? ` ${using} switch to your business letterhead.` : ''} Excel files you already downloaded are not affected.`}
+        confirmLabel="Delete for good"
+        onConfirm={() => void remove()}
+      />
+    </Panel>
+  )
+}
+
 function StateLine({ detail }: { detail: TemplateDetail }) {
   const { version } = detail
   return (
@@ -230,6 +266,7 @@ export function TemplateMapPage() {
               </div>
             </Panel>
             <ArchiveControls detail={detail} />
+            <DeleteControls detail={detail} />
           </div>
         </>
       )}

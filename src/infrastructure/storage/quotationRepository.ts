@@ -15,7 +15,8 @@ async function requireQuotation(id: string) {
   return quotation
 }
 
-async function snapshotLetterhead(business: Business, useTemplateLogo?: boolean) {
+/** The business's letterhead as it is now, logo included, for a quotation to keep. */
+export async function snapshotLetterhead(business: Business, useTemplateLogo?: boolean) {
   const header = businessLetterhead(business)
   header.useTemplateLogo = useTemplateLogo
   if (business.logoBlobId) {

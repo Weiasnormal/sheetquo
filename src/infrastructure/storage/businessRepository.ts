@@ -96,12 +96,43 @@ export function archiveBusiness(id: string) {
     db.transaction('rw', db.businesses, db.settings, async () => {
       await requireBusiness(id)
       await db.businesses.update(id, { archivedAt: now(), updatedAt: now() })
+      await replaceCurrent(id)
+    }),
+  )
+}
 
-      const current = await db.settings.get('currentBusinessId')
-      if (current?.value !== id) return
-      const next = (await db.businesses.toArray()).filter(isActive).sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0]
-      if (next) await db.settings.put({ key: 'currentBusinessId', value: next.id })
-      else await db.settings.delete('currentBusinessId')
+/** Makes another active business current when the current one goes away. */
+async function replaceCurrent(goneId: string) {
+  const current = await db.settings.get('currentBusinessId')
+  if (current?.value !== goneId) return
+  const next = (await db.businesses.toArray()).filter(isActive).sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0]
+  if (next) await db.settings.put({ key: 'currentBusinessId', value: next.id })
+  else await db.settings.delete('currentBusinessId')
+}
+
+/** What deleting a business also removes, so the confirmation can say so. */
+export async function countBusinessData(id: string): Promise<{ templates: number; quotations: number }> {
+  const [templates, quotations] = await Promise.all([
+    db.templates.where('businessId').equals(id).count(),
+    db.quotations.where('businessId').equals(id).count(),
+  ])
+  return { templates, quotations }
+}
+
+/** Removes a business for good, with its logo, templates and their workbook files, and its saved quotations. */
+export function deleteBusiness(id: string) {
+  return attempt(() =>
+    db.transaction('rw', [db.businesses, db.blobs, db.settings, db.templates, db.templateVersions, db.quotations], async () => {
+      const business = await requireBusiness(id)
+      const versions = await db.templateVersions.where('businessId').equals(id).toArray()
+      const blobIds = versions.flatMap(({ originalBlobId, sourceBlobId }) => [originalBlobId, sourceBlobId])
+      if (business.logoBlobId) blobIds.push(business.logoBlobId)
+      await db.blobs.bulkDelete(blobIds)
+      await db.templateVersions.bulkDelete(versions.map(({ id: versionId }) => versionId))
+      await db.templates.where('businessId').equals(id).delete()
+      await db.quotations.where('businessId').equals(id).delete()
+      await db.businesses.delete(id)
+      await replaceCurrent(id)
     }),
   )
 }
