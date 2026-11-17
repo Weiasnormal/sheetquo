@@ -15,6 +15,7 @@ import { computeTotals } from '../../domain/calculations/money'
 import { applyLineChoice } from '../../domain/parser/review'
 import type { QuotationRecord } from '../../domain/quotation/records'
 import { quotationTitle } from '../../domain/quotation/records'
+import { BUSINESS_LAYOUT } from '../../domain/quotation/letterhead'
 import type { TemplateSummary } from '../../domain/template/records'
 import { selectBusiness } from '../../infrastructure/storage/businessRepository'
 import { deleteQuotation, duplicateQuotation } from '../../infrastructure/storage/quotationRepository'
@@ -89,7 +90,8 @@ function Editor({ initial, business, templates }: { initial: QuotationRecord; bu
   const href = (next: Step) => `?step=${next}`
 
   const { summary, version, newerActive } = draftTemplate(record, templates)
-  const ready = readyTemplates(templates.filter(({ template }) => !template.archivedAt))
+  const designs = templates.filter(({ template }) => !template.archivedAt)
+  const ready = readyTemplates(designs)
   const templateLabel = record.letterhead ? (summary ? summary.template.name + ' · adaptive' : 'Business letterhead') : summary && version ? `${summary.template.name}, version ${version.version}` : 'No template'
   const totals = computeTotals(record)
   const issues = workspaceIssues(record, version)
@@ -191,6 +193,31 @@ function Editor({ initial, business, templates }: { initial: QuotationRecord; bu
       {step === 'review' && (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
           <div className="flex min-w-0 flex-col gap-4">
+            {record.letterhead && (
+              <Panel data-wiwo="quote-design" aria-labelledby="design-title" className="flex flex-col gap-3 p-5">
+                <PanelTitle id="design-title">Design</PanelTitle>
+                <label className="flex flex-col gap-2 text-sm font-medium sm:max-w-sm">
+                  Layout for this quotation
+                  <Select
+                    value={summary ? record.templateId : BUSINESS_LAYOUT}
+                    onChange={(event) => {
+                      const letterhead = record.letterhead && { ...record.letterhead, useTemplateLogo: false }
+                      if (event.target.value === BUSINESS_LAYOUT) return patch({ templateId: BUSINESS_LAYOUT, templateVersionId: BUSINESS_LAYOUT, letterhead })
+                      const chosen = designs.find(({ template }) => template.id === event.target.value)
+                      if (chosen) patch({ templateId: chosen.template.id, templateVersionId: (chosen.active ?? chosen.version).id, letterhead })
+                    }}
+                  >
+                    <option value={BUSINESS_LAYOUT}>Business letterhead · adaptive</option>
+                    {designs.map(({ template }) => <option key={template.id} value={template.id}>{template.name} · adaptive</option>)}
+                    {summary?.template.archivedAt && <option value={summary.template.id}>{summary.template.name} · archived</option>}
+                  </Select>
+                </label>
+                <p className="text-sm text-muted">
+                  {designs.length ? 'Switch any time. Your items and details stay the same.' : <>No designs yet. <Link to="/templates/import" className="underline">Upload an Excel design</Link> to borrow its column styling.</>}
+                </p>
+              </Panel>
+            )}
+
             {!record.letterhead && (newerActive || ready.length > 1 || !version) && (
               <Panel aria-labelledby="template-title" className="flex flex-col gap-3 p-5">
                 <PanelTitle id="template-title">Template</PanelTitle>

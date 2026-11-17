@@ -329,7 +329,44 @@ function widenAmountColumns(sheet: ExcelJS.Worksheet, amounts: { address: string
   return diagnostics
 }
 
+const AVERAGE_CHAR_WIDTH = 1.05
+
+function isEmptyCell(sheet: ExcelJS.Worksheet, row: number, column: number): boolean {
+  const cell = sheet.getCell(row, column)
+  return !cell.isMerged && (cell.value === null || cell.value === undefined || cell.text === '')
+}
+
+/** Width of the empty, unmerged cells running from a column outwards, in Excel character units. */
+function emptyWidth(sheet: ExcelJS.Worksheet, row: number, from: number, step: 1 | -1): number {
+  const last = Math.max(sheet.columnCount, from)
+  let width = 0
+  for (let column = from; column >= 1 && column <= last && isEmptyCell(sheet, row, column); column += step) width += columnWidth(sheet, column)
+  return width
+}
+
+/**
+ * Excel lets a single line of text spill into empty neighbouring cells: both sides when centered, rightwards
+ * when left-aligned, leftwards when right-aligned. A centered business name in one narrow column relies on this.
+ */
+export function overflowWidth(sheet: ExcelJS.Worksheet, cell: ExcelJS.Cell): number {
+  const row = Number(cell.row), column = Number(cell.col)
+  const own = columnWidth(sheet, column)
+  const horizontal = cell.alignment?.horizontal
+  if (horizontal === 'center' || horizontal === 'centerContinuous') {
+    return own + 2 * Math.min(emptyWidth(sheet, row, column - 1, -1), emptyWidth(sheet, row, column + 1, 1))
+  }
+  if (horizontal === 'right') return own + emptyWidth(sheet, row, column - 1, -1)
+  if (horizontal === undefined || horizontal === 'left') return own + emptyWidth(sheet, row, column + 1, 1)
+  return own
+}
+
+function textWidth(text: string, fontSize: number): number {
+  return (text.length * fontSize * AVERAGE_CHAR_WIDTH) / DEFAULT_FONT_SIZE + 1
+}
+
 function fitText(sheet: ExcelJS.Worksheet, cell: ExcelJS.Cell, value: string): boolean {
+        if (!cell.isMerged && !cell.alignment?.wrapText && !value.includes('\n')
+          && textWidth(value, cell.font?.size ?? DEFAULT_FONT_SIZE) <= overflowWidth(sheet, cell)) return true
         cell.alignment = { ...cell.alignment, wrapText: true, vertical: cell.alignment?.vertical ?? 'top' }
         const box = mergesOf(sheet).map(parseRange).find((range) => range.top === Number(cell.row) && range.left === Number(cell.col))
         const firstColumn = box?.left ?? Number(cell.col)
@@ -685,6 +722,7 @@ export class ExcelJsAdapter implements WorkbookAdapter {
 
     const totals = computeTotals(quotation)
     const addresses: Record<string, string> = {}
+    const written: { cell: ExcelJS.Cell; address: string; value: string }[] = []
     for (const mapping of template.cellMappings) {
       const address = addressOf(mapping)
       addresses[mapping.semanticKey] = address
@@ -697,9 +735,11 @@ export class ExcelJsAdapter implements WorkbookAdapter {
         const format = template.output?.dateFormat ?? 'template'
         if (format !== 'template' || isGeneralFormat(cell.numFmt)) cell.numFmt = format === 'iso' ? 'yyyy-mm-dd' : format === 'short' ? 'mm/dd/yyyy' : DEFAULT_DATE_FORMAT
       }
-      if (typeof value === 'string') {
-        if (!fitText(sheet, cell, value)) return { ok: false, diagnostics: [{ severity: 'error', code: 'MAPPED_TEXT_TOO_TALL', cell: address, message: 'Text in a mapped field is too long for its Excel cells. Shorten it or enlarge its mapped area before generating.' }] }
-      }
+      if (typeof value === 'string') written.push({ cell, address, value })
+    }
+    // Every field is written before any is measured, so a neighbour filled later is never mistaken for empty space.
+    for (const { cell, address, value } of written) {
+      if (!fitText(sheet, cell, value)) return { ok: false, diagnostics: [{ severity: 'error', code: 'MAPPED_TEXT_TOO_TALL', cell: address, message: 'Text in a mapped field is too long for its Excel cells. Shorten it or enlarge its mapped area before generating.' }] }
     }
 
     writeTotals(sheet, template, quotation, totals, addressOf, firstItemRow, lastItemRow, moneyFormat, (address) => {

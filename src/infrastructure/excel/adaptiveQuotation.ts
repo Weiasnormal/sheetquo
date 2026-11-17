@@ -34,7 +34,10 @@ function pictureSize(data: string) {
   return { width: Math.max(1,width * scale), height: Math.max(1,height * scale) }
 }
 
-export type PreviewCell = { text: string; span: number; bold?: boolean; fill?: string; color?: string; align?: 'left' | 'right' | 'center'; border?: boolean; size?: number; font?: string }
+export type PreviewCell = { text: string; span: number; bold?: boolean; fill?: string; color?: string; align?: 'left' | 'right' | 'center'; border?: boolean; box?: boolean; double?: boolean; size?: number; font?: string }
+
+const THIN: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: 'FF9CA3AF' } }
+const BOX: Partial<ExcelJS.Borders> = { top: THIN, left: THIN, bottom: THIN, right: THIN }
 export type AdaptiveOutput = {
   bytes: Uint8Array; widths: number[]; rows: PreviewCell[][]; logo?: string; logoSize?: {width: number; height: number}; warning?: string
 }
@@ -80,7 +83,7 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
   sheet.getColumn(7).hidden = true
   const numFmt = '"' + head.currency + '" #,##0.00;[Red]-"' + head.currency + '" #,##0.00'
   const money = new Intl.NumberFormat('en-PH', {style:'currency', currency:head.currency}).format
-  function line(text: string, size = 11, bold = false, start = 1, sourceKey?: SemanticKey) {
+  function line(text: string, size = 11, bold = false, start = 1, sourceKey?: SemanticKey, center = false) {
     const row = sheet.addRow([])
     sheet.mergeCells(row.number,start,row.number,6)
     const cell = row.getCell(start)
@@ -89,11 +92,11 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
     const original = anchor && source ? source.getCell(anchor) : undefined
     if (original) cell.style = structuredClone(original.style)
     cell.font = {name:'Calibri', ...cell.font, size, bold: bold || cell.font?.bold}
-    cell.alignment = {...cell.alignment, vertical:'middle', wrapText:true}
+    cell.alignment = {...cell.alignment, vertical:'middle', wrapText:true, ...(center && !original?.alignment?.horizontal ? {horizontal:'center' as const} : {})}
     row.height = Math.max(size + 8,(size+4) * text.split('\n').reduce((n,l) => n+Math.max(1,Math.ceil(l.length/85)),0))
     return row
   }
-  const heading = line(head.name, 19, true, logo ? 2 : 1, 'business.name')
+  const heading = line(head.name, 19, true, logo ? 2 : 1, 'business.name', true)
   const logoSize = logo ? pictureSize(logo) : undefined
   if (logo && logoSize) {
     const ext = logoSize
@@ -101,10 +104,11 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
     sheet.addImage(id,{tl:{col:0,row:0},ext,editAs:'oneCell'})
     heading.height = Math.max(heading.height ?? 0, ext.height * .75 + 8)
   }
-  if (head.address) line(head.address, 11, false, 1, 'business.address')
-  if (head.tax) line(head.tax, 11, false, 1, 'business.taxText')
-  if (head.contact) line(head.contact, 11, false, 1, 'business.phone')
-  line(['Quotation',q.quoteNumber,q.quoteDateISO].filter(Boolean).join(' · '),15,true)
+  // The letterhead is centered across the printed width, like a hand-made quotation header.
+  if (head.address) line(head.address, 11, false, 1, 'business.address', true)
+  if (head.tax) line(head.tax, 11, false, 1, 'business.taxText', true)
+  if (head.contact) line(head.contact, 11, false, 1, 'business.phone', true)
+  line(['Quotation',q.quoteNumber,q.quoteDateISO].filter(Boolean).join(' · '),15,true,1,undefined,true)
   line('Customer: ' + q.customerName,12,true)
   for (const [label,value] of [['Address',q.customerAddress],['TIN',q.customerTIN],['Vehicle',q.vehicle],['Engine',q.engine],['Plate',q.plate],['Chassis',q.chassis]]) if(value) line(label + ': ' + value)
   const header = sheet.addRow(labels.map((label,i) => sourceCells[i]?.text.trim() || label))
@@ -115,6 +119,8 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
     else {
       cell.font = {bold:true,color:{argb:'FF1F2937'}}
       cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFEAFBD7'}}
+      cell.border = BOX
+      cell.alignment = {horizontal:'center'}
     }
     cell.alignment = {...cell.alignment,wrapText:true,vertical:'middle'}
   })
@@ -128,6 +134,7 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
     fields.forEach((_,i) => {
       const cell = row.getCell(i+1), original = sourceCells[i]
       if(source && original) cell.style = structuredClone(source.getCell(original.row+1,original.col).style)
+      else cell.border = BOX
       cell.alignment = {...cell.alignment,vertical:'middle',wrapText:true}
       if(i>=4) cell.numFmt = numFmt
     })
@@ -143,6 +150,7 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
     row.getCell(6).numFmt = numFmt
     row.font = {name:'Calibri',size:11,bold}
     row.height = Math.max(23,Math.ceil(label.length / 70)*16+6)
+    row.getCell(6).border = bold ? {...BOX, bottom:{style:'double',color:{argb:'FF1F2937'}}} : BOX
     return row.number
   }
   const subtotal = summary('Subtotal',{formula:'ROUND(SUM(F'+first+':F'+last+'),2)',result:totals.subtotalMinor/100})
@@ -174,6 +182,7 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
       const align=cell.alignment?.horizontal
       cells.push({text:typeof value==='number' && cell.numFmt===numFmt ? money(value) : String(value ?? ''),
         span,bold:cell.font?.bold,size:cell.font?.size,font:cell.font?.name,border:!!cell.border?.bottom,
+        box:!!(cell.border?.top && cell.border.left && cell.border.right && cell.border.bottom),double:cell.border?.bottom?.style==='double',
         align:align==='center'||align==='left'||align==='right'?align:typeof value==='number'?'right':'left',
         color:color?'#'+color.slice(-6):undefined,fill:fill?'#'+fill.slice(-6):undefined})
     }

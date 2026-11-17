@@ -1,4 +1,4 @@
-import { Building2 } from 'lucide-react'
+import { Building2, Pencil } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Panel } from '../../components/ui/Panel'
 import type { BusinessRecord } from '../../domain/business/businessForm'
 import { BusinessLogo } from '../../features/businesses/BusinessLogo'
+import { DeleteBusinessButton } from '../../features/businesses/DeleteBusinessButton'
 import { restoreBusiness, selectBusiness } from '../../infrastructure/storage/businessRepository'
 import { useWorkspace } from '../useWorkspace'
 
@@ -26,7 +27,15 @@ function BusinessRow({ business, action }: { business: BusinessRecord; action: R
         </Link>
         <p className="truncate text-muted">{contactLine(business)}</p>
       </div>
-      {action}
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        {action}
+        <Button asChild variant="secondary">
+          <Link to={`/businesses/${business.id}`} aria-label={`Edit ${business.displayName}`}>
+            <Pencil aria-hidden className="size-4" />
+          </Link>
+        </Button>
+        <DeleteBusinessButton business={business} compact />
+      </div>
     </li>
   )
 }

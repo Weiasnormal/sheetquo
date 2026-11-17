@@ -164,6 +164,21 @@ export function restoreTemplate(id: string) {
   )
 }
 
+/** Renames a template. Saved files and versions keep their original names. */
+export function renameTemplate(id: string, name: string) {
+  const trimmed = name.trim()
+  return attempt(() =>
+    db.transaction('rw', db.templates, async () => {
+      if (!trimmed) throw new StorageFailure('DUPLICATE_NAME', 'Give the template a name.')
+      const template = await db.templates.get(id)
+      if (!template) throw new StorageFailure('NOT_FOUND', 'This template is no longer saved in this browser.')
+      await assertUniqueName(template.businessId, trimmed, id)
+      await db.templates.update(id, { name: trimmed, updatedAt: now() })
+      return { ...template, name: trimmed }
+    }),
+  )
+}
+
 /**
  * Removes a template for good: every version and both workbook files of each. Quotations made with it
  * switch to the business letterhead so they still open and download, and the business forgets it as a choice.

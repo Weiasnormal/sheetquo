@@ -1,6 +1,7 @@
 import { WiwoSettings } from '../../features/wiwo/WiwoLibrary'
 import { BackupControls } from '../../features/settings/BackupControls'
 import { OfflineControls } from '../../features/settings/OfflineControls'
+import { WipeDataControls } from '../../features/settings/WipeDataControls'
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -89,6 +90,10 @@ export function SettingsPage() {
       </SettingsSection>
 
       <SettingsSection title="Wiwo" description="Your cursor guide remembers learning in this browser."><WiwoSettings /></SettingsSection>
+
+      <SettingsSection title="Wipe data" description="Start over in this browser without clearing site data by hand.">
+        <WipeDataControls />
+      </SettingsSection>
 
       <SettingsSection title="Privacy" description="What happens to your quotation data.">
         <ul className="flex list-disc flex-col gap-2 pl-4">

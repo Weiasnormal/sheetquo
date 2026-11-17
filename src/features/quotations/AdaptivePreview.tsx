@@ -8,7 +8,8 @@ export function AdaptivePreview({output}: {output: AdaptiveOutput}) {
       <colgroup>{output.widths.map((width,i)=><col key={i} style={{width:100*width/output.widths.reduce((a,b)=>a+b,0)+'%'}}/>)}</colgroup>
       <tbody>{output.rows.map((row,r)=><tr key={r}>{row.map((cell,c)=><td key={c} colSpan={cell.span}
         className="whitespace-pre-wrap break-words px-1 py-1.5 align-middle"
-        style={{fontWeight:cell.bold?700:undefined,fontFamily:cell.font,fontSize:cell.size && cell.size+'pt',textAlign:cell.align,color:cell.color,backgroundColor:cell.fill,borderBottom:cell.border?'1px solid #9ca3af':undefined}}>
+        style={{fontWeight:cell.bold?700:undefined,fontFamily:cell.font,fontSize:cell.size && cell.size+'pt',textAlign:cell.align,color:cell.color,backgroundColor:cell.fill,border:cell.box?'1px solid #9ca3af':undefined,
+          borderBottom:cell.double?'3px double #1f2937':cell.border?'1px solid #9ca3af':undefined}}>
         {r===0 && c===0 && output.logo && <img src={output.logo} alt="Business logo" width={output.logoSize?.width} height={output.logoSize?.height} className="max-h-16 max-w-full object-contain"/>}{cell.text}
       </td>)}</tr>)}</tbody>
     </table>

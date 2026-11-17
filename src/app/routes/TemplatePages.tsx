@@ -10,6 +10,7 @@ import { Panel } from '../../components/ui/Panel'
 import type { TemplateSummary } from '../../domain/template/records'
 import { describeRegion } from '../../domain/template/region'
 import { versionStateLabel } from '../../features/templates/versionActions'
+import { DeleteTemplateButton, RenameTemplateButton } from '../../features/templates/TemplateActions'
 import { restoreTemplate } from '../../infrastructure/storage/templateRepository'
 import { chooseBusinessTemplate } from '../../infrastructure/storage/businessRepository'
 import { Select } from '../../components/forms/Field'
@@ -33,11 +34,15 @@ function TemplateRow({ summary, action }: { summary: TemplateSummary; action?: R
           {warnings} warning{warnings === 1 ? '' : 's'}
         </span>
       )}
-      {action ?? (
-        <Badge tone={summary.active ? 'positive' : 'neutral'}>
-          {summary.active ? `Active · version ${summary.active.version}` : versionStateLabel(version)}
-        </Badge>
-      )}
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        {action ?? (
+          <Badge tone={summary.active ? 'positive' : 'neutral'}>
+            {summary.active ? `Active · version ${summary.active.version}` : versionStateLabel(version)}
+          </Badge>
+        )}
+        <RenameTemplateButton template={template} />
+        <DeleteTemplateButton template={template} compact />
+      </div>
     </li>
   )
 }

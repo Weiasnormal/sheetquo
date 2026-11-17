@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
 import { BUSINESS_LAYOUT } from '../../domain/quotation/letterhead'
 import { emptyDraft } from '../../domain/template/mappingDraft'
@@ -12,7 +13,8 @@ import {
 } from './businessRepository'
 import { db } from './db'
 import { createQuotation, readQuotation } from './quotationRepository'
-import { activateVersion, countTemplateQuotations, deleteTemplate, importTemplate, recordTestResult } from './templateRepository'
+import { activateVersion, countTemplateQuotations, deleteTemplate, importTemplate, recordTestResult, renameTemplate } from './templateRepository'
+import { countAllData, wipeAllData } from './wipe'
 
 let workbook: Uint8Array
 
@@ -123,5 +125,34 @@ describe('deleting a business', () => {
     expect(await db.settings.get('currentBusinessId')).toBeUndefined()
     const snapshot = await readWorkspace()
     expect(snapshot.status === 'ready' && snapshot.business).toBeNull()
+  })
+})
+
+describe('renaming a template', () => {
+  it('renames it, refusing a blank name or one another template already uses', async () => {
+    const owner = await business('Demo Parts Supply')
+    const { template: saved } = await template(owner.id)
+    await template(owner.id, 'Service quotation')
+    expect(await renameTemplate(saved.id, '  Parts form  ')).toMatchObject({ ok: true, value: { name: 'Parts form' } })
+    expect((await db.templates.get(saved.id))?.name).toBe('Parts form')
+    expect(await renameTemplate(saved.id, 'service quotation')).toMatchObject({ ok: false, error: { code: 'DUPLICATE_NAME' } })
+    expect((await renameTemplate(saved.id, '   ')).ok).toBe(false)
+  })
+})
+
+describe('wiping all data', () => {
+  it('empties every table and forgets remembered layout choices', async () => {
+    const owner = await business('Demo Parts Supply', true)
+    const { template: saved, version } = await template(owner.id)
+    await quotation(owner.id, saved.id, version.id)
+    localStorage.setItem('quotation-layout:' + owner.id, saved.id)
+    localStorage.setItem('unrelated', 'kept')
+    expect(await countAllData()).toEqual({ businesses: 1, templates: 1, quotations: 1 })
+
+    expect((await wipeAllData()).ok).toBe(true)
+    for (const table of db.tables) expect(await table.count()).toBe(0)
+    expect(localStorage.getItem('quotation-layout:' + owner.id)).toBeNull()
+    expect(localStorage.getItem('unrelated')).toBe('kept')
+    localStorage.removeItem('unrelated')
   })
 })

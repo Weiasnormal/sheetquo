@@ -76,3 +76,25 @@ it.skipIf(!examples)('rebuilds the real WCCE example from its Excel design at 3,
   }
 })
 
+
+it('draws table lines and centers the letterhead when no design is used', async () => {
+  const q: QuotationRecord = { id: 'lines', templateId: 'sheetquo:business-layout', templateVersionId: 'sheetquo:business-layout', businessId: 'b',
+    customerName: 'Ventura Motors', quoteDateISO: '2026-11-06', items: [item, { ...item, id: 'j', description: 'Oil Filter' }],
+    adjustments: [{ ...discount, mode: 'fixed', value: '100' }], createdAt: '', updatedAt: '',
+    letterhead: { name: 'WCCE Auto Parts Supply', address: 'Sample Street', contact: '12345', tax: 'Non-VAT', currency: 'PHP' } }
+  const output = await buildAdaptiveQuotation(q)
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.load(toBuffer(output.bytes))
+  const sheet = wb.worksheets[0]
+  for (let row = 1; row <= 5; row++) expect(sheet.getCell('A' + row).alignment?.horizontal).toBe('center')
+  const header = Number(sheet.pageSetup.printTitlesRow!.split(':')[0])
+  for (let row = header; row <= header + 2; row++) {
+    for (const column of 'ABCDEF') {
+      const border = sheet.getCell(column + row).border
+      expect([border?.top?.style, border?.left?.style, border?.bottom?.style, border?.right?.style]).toEqual(['thin', 'thin', 'thin', 'thin'])
+    }
+  }
+  expect(sheet.getCell('F' + sheet.rowCount).border?.bottom?.style).toBe('double')
+  expect(output.rows[header - 1].every(cell => cell.box)).toBe(true)
+  expect(output.rows.at(-1)!.at(-1)!.double).toBe(true)
+})
