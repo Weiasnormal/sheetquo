@@ -8,6 +8,9 @@ import { useWiwo } from './context'
 import { useTarget } from './useTarget'
 import { targetFor } from './dom'
 import { WiwoArrow } from './WiwoArrow'
+
+/** The card sits above the floating Wiwo button in the lower right, never on top of it. */
+const LAUNCHER_CLEARANCE = 72
 import { WiwoCursor } from './WiwoCursor'
 import { useReducedMotion } from './motion'
 
@@ -47,8 +50,8 @@ export default function WiwoCoach() {
   const cardStyle = position.width >= 768 ? {
     width: cardWidth,
     left: beside && rect ? rect.left + rect.width + 16 : leftSide && rect ? rect.left - cardWidth - 16 : position.width - cardWidth - 16,
-    ...(beside || leftSide ? { top: Math.min(Math.max(76, rect?.top ?? 76), Math.max(76, position.height - 380)) } : { bottom: 16 }),
-  } : { width: cardWidth, left: 12, bottom: Math.max(12, (window.innerHeight - (window.visualViewport?.height ?? window.innerHeight)) / (Number(getComputedStyle(document.documentElement).zoom) || 1) + 12) }
+    ...(beside || leftSide ? { top: Math.min(Math.max(76, rect?.top ?? 76), Math.max(76, position.height - 380)) } : { bottom: LAUNCHER_CLEARANCE }),
+  } : { width: cardWidth, left: 12, bottom: Math.max(12, (window.innerHeight - (window.visualViewport?.height ?? window.innerHeight)) / (Number(getComputedStyle(document.documentElement).zoom) || 1) + LAUNCHER_CLEARANCE) }
 
   return createPortal(<div data-wiwo-ui>
     {rect && !wiwo.paused && !run.finished && !position.busy && <div className="wiwo-highlight" aria-hidden="true" style={rect} />}

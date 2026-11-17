@@ -1,6 +1,8 @@
 /* Launcher: sits in the page header slot; floats in the corner only on pages without one. */
 .wiwo-launcher { position: relative; z-index: 55; }
-.wiwo-launcher[data-floating] { position: fixed; top: 10px; right: 12px; }
+/* Its own layer in the lower right, clear of the phone's home indicator. */
+.wiwo-launcher[data-floating] { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+.wiwo-launcher[data-floating] .wiwo-toggle { box-shadow: 0 4px 16px #18221c26; }
 .wiwo-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; min-width: 36px; padding: 0 9px; border: 1px solid var(--sheetquo-control); border-radius: 10px; background: var(--sheetquo-white); color: var(--sheetquo-charcoal); font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color 150ms ease-out; }
 .wiwo-toggle:hover { background: var(--sheetquo-lime-tint); }
 .wiwo-toggle[aria-pressed='true'] { background: var(--sheetquo-lime); border-color: var(--sheetquo-charcoal); }
@@ -23,7 +25,7 @@
 .wiwo-arrow-body { fill: currentColor; stroke: currentColor; stroke-width: 1.5px; stroke-linejoin: round; }
 .wiwo-toggle[aria-pressed='true'] .wiwo-arrow-rim { stroke: var(--sheetquo-lime); }
 
-.wiwo-offer { position: absolute; top: calc(100% + 8px); right: 0; width: min(280px, calc(100vw - 24px)); border-radius: 14px; background: var(--sheetquo-white); padding: 14px; box-shadow: 0 6px 24px #18221c24; }
+.wiwo-offer { position: absolute; bottom: calc(100% + 8px); right: 0; width: min(280px, calc(100vw - 24px)); border-radius: 14px; background: var(--sheetquo-white); padding: 14px; box-shadow: 0 6px 24px #18221c24; }
 .wiwo-offer > .wiwo-close { position: absolute; top: 4px; right: 4px; }
 
 /* Guide cursor: glides between targets and carries a name tag that speaks the step title. */
@@ -78,9 +80,11 @@
   .wiwo-text-button { min-height: 44px; }
 }
 
-.wiwo-loading { position: fixed; right: 16px; bottom: 16px; max-width: calc(100vw - 32px); padding: 14px; font-size: 13px; background: var(--sheetquo-white); border: 1px solid var(--sheetquo-control); border-radius: 12px; z-index: 54; }
+.wiwo-loading { position: fixed; right: 16px; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 32px); padding: 14px; font-size: 13px; background: var(--sheetquo-white); border: 1px solid var(--sheetquo-control); border-radius: 12px; z-index: 54; }
 .wiwo-modal-note { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--sheetquo-border); }
 .wiwo-guiding #main { padding-bottom: 340px; }
+/* Room at the end of every page so the floating Wiwo button never covers the last control. */
+#main { padding-bottom: 72px; }
 [data-wiwo] { scroll-margin-top: 84px; }
 @media (max-width: 767px) {
   .wiwo-card { padding: 12px 14px; }

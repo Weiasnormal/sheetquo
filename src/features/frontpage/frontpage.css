@@ -10,7 +10,6 @@
 .front-header nav { margin-left: auto; display: flex; align-items: center; gap: 28px; font-size: 14px; font-weight: 500; }
 .front-header nav a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
 .front-header-open { font-weight: 650; }
-.front-header-wiwo { display: flex; align-items: center; flex-shrink: 0; }
 .front-hero { display: grid; grid-template-columns: .95fr 1.15fr; gap: 32px; align-items: center; padding-block: 42px 56px; }
 .front-hero-copy { padding-bottom: 40px; }
 .front-hero h1 { max-width: 570px; font-size: clamp(44px, 4.7vw, 65px); line-height: 1.075; letter-spacing: -.04em; font-weight: 650; text-wrap: balance; color: var(--sheetquo-charcoal-deep); }

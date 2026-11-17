@@ -33,7 +33,7 @@ export function AppLayout() {
         <MobileBar />
 
         <main id="main" ref={mainRef} tabIndex={-1} className="min-w-0 outline-none">
-          <div className="mx-auto max-w-300 px-4 py-6 sm:px-6 lg:px-9 lg:pt-2 lg:pb-9">
+          <div className="mx-auto max-w-300 px-4 py-6 sm:px-6 lg:px-9 lg:pt-9 lg:pb-9">
             {status === 'unavailable' && (
               <p data-wiwo="recovery" role="status" className="mb-6 rounded-button border border-notice/30 bg-notice-tint px-4 py-3 text-notice">
                 This browser is blocking local storage, so nothing can be saved here. Private windows often do this.
