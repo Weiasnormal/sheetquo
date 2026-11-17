@@ -110,7 +110,8 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
   function spacer(height = 12) {
     sheet.addRow([]).height = height
   }
-  const heading = line(head.name, 19, true, logo ? 2 : 1, 'business.name', true)
+  // The name spans the full width so it is truly centered; the logo floats over the left edge.
+  const heading = line(head.name, 19, true, 1, 'business.name', true)
   const logoSize = logo ? pictureSize(logo) : undefined
   if (logo && logoSize) {
     const ext = logoSize
@@ -179,7 +180,7 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
   // Totals sit on the right like the owner's own form, with a gap between lines; signatures share their rows on the left.
   const signatures = [['Prepared by',q.preparedBy],['Received by',q.receivedBy],['Checked by',q.checkedBy]].filter(([,v]) => v).map(([l,v]) => l + ': ' + v)
   let summaries = 0
-  function summary(label: string, value: ExcelJS.CellValue, kind: 'subtotal' | 'adjustment' | 'grand') {
+  function summary(label: string, value: ExcelJS.CellValue, kind: 'subtotal' | 'discount' | 'charge' | 'grand') {
     if (summaries++ > 0) spacer()
     const signature = signatures.shift()
     const row = sheet.addRow([signature ?? null,null,null,label,null,value])
@@ -193,7 +194,12 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
     amount.alignment = {horizontal:'right',vertical:'middle'}
     amount.font = {name:'Calibri',size:kind === 'grand' ? 12 : 11,bold:true}
     if (kind === 'subtotal') amount.border = {top:THIN,bottom:THIN}
-    if (kind === 'adjustment') amount.border = {top:RED,left:RED,bottom:RED,right:RED}
+    if (kind === 'charge') amount.border = BOX
+    if (kind === 'discount') {
+      // Discounts read red across the whole line, like the owner's own form.
+      amount.border = {top:RED,left:RED,bottom:RED,right:RED}
+      for (const cell of [row.getCell(4), amount]) cell.font = {...cell.font, color:{argb:'FFDC2626'}}
+    }
     if (kind === 'grand') {
       amount.border = BOX
       amount.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFF00'}}
@@ -206,11 +212,12 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
     const adj = q.adjustments.find(a=>a.id===result.id)!
     const sign = ['discount','deduction'].includes(adj.kind) ? -1 : 1
     const value = sign*result.amountMinor/100
-    if(adj.mode==='fixed') { summary(adj.label,value,'adjustment'); continue }
+    const kind = sign < 0 ? 'discount' : 'charge'
+    if(adj.mode==='fixed') { summary(adj.label,value,kind); continue }
     const kindRange = 'G'+first+':G'+last, amountRange='F'+first+':F'+last
     const base = adj.base==='manual' ? String((adj.manualBaseMinor ?? 0)/100)
       : adj.base==='allBillable' ? 'F'+subtotal : 'SUMIF('+kindRange+',"'+(adj.base==='labor'?'labor':'<>labor')+'",'+amountRange+')'
-    summary(adj.label+' ('+adj.value+'%)',{formula:(sign<0?'-':'')+'ROUND('+base+'*'+Number(adj.value)+'/100,2)',result:value},'adjustment')
+    summary(adj.label+' ('+adj.value+'%)',{formula:(sign<0?'-':'')+'ROUND('+base+'*'+Number(adj.value)+'/100,2)',result:value},kind)
   }
   summary('Grand total',{formula:'ROUND(SUM(F'+subtotal+':F'+sheet.rowCount+'),2)',result:totals.grandTotalMinor/100},'grand')
   for (const signature of signatures) { spacer(); line(signature, 11, true) }
