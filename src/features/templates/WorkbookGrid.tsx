@@ -19,6 +19,21 @@ type WorkbookGridProps = {
 
 const columnWidth = (width: number) => Math.max(32, Math.round(width * PIXELS_PER_CHARACTER))
 
+type GridRow = WorkbookGridData['rows'][number]
+
+const isEmpty = (cell: GridRow['cells'][number] | undefined) => Boolean(cell && !cell.covered && !cell.text && !cell.colSpan)
+
+/**
+ * Like Excel, one line of text spills into empty neighbouring cells instead of being cut off:
+ * both ways when centered, rightwards when left-aligned. A header typed into one narrow column relies on this.
+ */
+function spill(row: GridRow, index: number): 'center' | 'right' | undefined {
+  const cell = row.cells[index]
+  if (!cell.text || cell.colSpan || cell.rowSpan || cell.numeric || cell.align === 'right') return undefined
+  if (cell.align === 'center') return isEmpty(row.cells[index - 1]) && isEmpty(row.cells[index + 1]) ? 'center' : undefined
+  return isEmpty(row.cells[index + 1]) ? 'right' : undefined
+}
+
 const ROW_MARK_LABEL: Record<RowMark, string> = { header: 'Header row', items: 'Item row', footer: 'First row after the items' }
 
 /** An approximate view of cells, for choosing an area and mapping it. Excel's own rendering is the real one. */
@@ -71,6 +86,7 @@ export function WorkbookGrid({ grid, caption, onCellClick, cellMarks = {}, rowMa
                     if (cell.covered) return null
                     const address = `${grid.columns[index].letter}${row.number}`
                     const mark = cellMarks[address]
+                    const spills = spill(row, index)
                     return (
                       <td
                         key={index}
@@ -80,7 +96,8 @@ export function WorkbookGrid({ grid, caption, onCellClick, cellMarks = {}, rowMa
                         onClick={onCellClick ? () => onCellClick(address) : undefined}
                         style={{ backgroundColor: cell.fill, color: cell.color }}
                         className={cn(
-                          'max-w-0 truncate border-r border-b px-1.5 py-1 align-top',
+                          'max-w-0 border-r border-b px-1.5 py-1 align-top',
+                          spills ? 'relative overflow-visible whitespace-nowrap' : 'truncate',
                           cell.bordered ? 'border-control' : 'border-rule',
                           cell.bold && 'font-semibold',
                           cell.formula && 'text-muted',
@@ -92,7 +109,13 @@ export function WorkbookGrid({ grid, caption, onCellClick, cellMarks = {}, rowMa
                           mark?.mark === 'cleared' && 'text-muted line-through',
                         )}
                       >
-                        {cell.text}
+                        {spills === 'center' ? (
+                          <span className="pointer-events-none absolute top-1 left-1/2 z-[1] -translate-x-1/2">{cell.text}</span>
+                        ) : spills ? (
+                          <span className="relative z-[1]">{cell.text}</span>
+                        ) : (
+                          cell.text
+                        )}
                       </td>
                     )
                   })}

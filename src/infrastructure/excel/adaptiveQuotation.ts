@@ -38,6 +38,11 @@ export type PreviewCell = { text: string; span: number; bold?: boolean; fill?: s
 
 const THIN: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: 'FF9CA3AF' } }
 const BOX: Partial<ExcelJS.Borders> = { top: THIN, left: THIN, bottom: THIN, right: THIN }
+/** Keeps a design's own border sides and fills any it left out, so the table is always fully lined. */
+function boxed(border: Partial<ExcelJS.Borders> | undefined): Partial<ExcelJS.Borders> {
+  const side = (key: 'top' | 'left' | 'bottom' | 'right') => border?.[key]?.style ? structuredClone(border[key]) : THIN
+  return { top: side('top'), left: side('left'), bottom: side('bottom'), right: side('right') }
+}
 const RED: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: 'FFDC2626' } }
 const ITEM_ALIGN = ['left', 'center', 'center', 'center', 'right', 'right'] as const
 
@@ -148,7 +153,7 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
   header.height = 29
   header.eachCell((cell,i) => {
     const original = sourceCells[i-1]
-    if(original) cell.style = structuredClone(original.style)
+    if(original) cell.style = {...structuredClone(original.style), border: boxed(original.border)}
     else {
       cell.font = {name:'Calibri',size:11,bold:true,color:{argb:'FF1F2937'}}
       cell.border = BOX
@@ -164,7 +169,10 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
     row.getCell(6).value = {formula:'ROUND(C'+n+'*E'+n+',2)',result:(lineAmountMinor(item) ?? 0)/100}
     fields.forEach((_,i) => {
       const cell = row.getCell(i+1), original = sourceCells[i]
-      if(source && original) cell.style = structuredClone(source.getCell(original.row+1,original.col).style)
+      if(source && original) {
+        const sample = source.getCell(original.row+1,original.col)
+        cell.style = {...structuredClone(sample.style), border: boxed(sample.border)}
+      }
       else cell.border = BOX
       // Description left; part number, quantity and unit centered; money right.
       cell.alignment = {...cell.alignment,horizontal:ITEM_ALIGN[i],vertical:'middle',wrapText:true}

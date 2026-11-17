@@ -140,3 +140,30 @@ describe('the letterhead layout without a design', () => {
     expect(output.rows.flat().find(cell => cell.text === '-PHP 100.00')?.color).toBe('#dc2626')
   })
 })
+
+it('fills in border sides a design leaves out, so its table is fully lined', async () => {
+  const design = new ExcelJS.Workbook()
+  const sheet = design.addWorksheet('Sheet1')
+  const labels = ['PARTS NAME', 'PARTS NUMBER', 'QTY', 'UNIT', 'PRICE (EACH)', 'TOTAL AMOUNT']
+  labels.forEach((label, i) => {
+    sheet.getCell(5, i + 1).value = label
+    sheet.getCell(5, i + 1).border = { right: { style: 'thin' }, bottom: { style: 'thin' } }
+    sheet.getCell(6, i + 1).border = { right: { style: 'medium' }, bottom: { style: 'thin' } }
+  })
+  sheet.getCell('A6').value = 'TIRE'
+  sheet.getCell('C6').value = 1
+  sheet.getCell('E6').value = 100
+  const q: QuotationRecord = { id: 'd', templateId: 't', templateVersionId: 'v', businessId: 'b', customerName: 'Ventura Motors', quoteDateISO: '2026-11-06',
+    items: [item], adjustments: [], createdAt: '', updatedAt: '', letterhead: { name: 'WCCE', address: '', contact: '', tax: '', currency: 'PHP' } }
+  const output = await buildAdaptiveQuotation(q, new Uint8Array(await design.xlsx.writeBuffer() as ArrayBuffer))
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.load(toBuffer(output.bytes))
+  const out = wb.worksheets[0]
+  const header = Number(out.pageSetup.printTitlesRow!.split(':')[0])
+  expect(out.getCell('A' + header).text).toBe('PARTS NAME')
+  for (const row of [header, header + 1]) {
+    const border = out.getCell('A' + row).border
+    expect([border?.top?.style, border?.left?.style, border?.bottom?.style]).toEqual(['thin', 'thin', 'thin'])
+  }
+  expect(out.getCell('A' + (header + 1)).border?.right?.style).toBe('medium')
+})
