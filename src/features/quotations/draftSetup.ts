@@ -1,6 +1,7 @@
 import type { BusinessRecord } from '../../domain/business/businessForm'
 import { parseQuotationText } from '../../domain/parser/parseQuotationText'
 import { quotationFromParse } from '../../domain/parser/toQuotation'
+import type { TaxOptions } from '../../domain/parser/toQuotation'
 import type { QuotationRecord } from '../../domain/quotation/records'
 import { todayISO } from '../../domain/quotation/records'
 import type { Adjustment, Quotation, QuoteItem } from '../../domain/quotation/types'
@@ -33,32 +34,48 @@ export function draftFromText(text: string, business: BusinessRecord, summary?: 
   const defaults = blankDraft(business, summary, adaptive)
   const parse = parseQuotationText(text)
   // The repository gives the draft its id.
-  const parsed: Partial<Quotation> = quotationFromParse(parse, text, { ...defaults, id: '' })
+  const parsed: Partial<Quotation> = quotationFromParse(parse, text, { ...defaults, id: '' }, { vatRegistered: business.vatRegistered })
   delete parsed.id
   return { ...defaults, ...parsed, parse }
 }
 
 /** Reads the message again, replacing the items, adjustments, and any field it finds. Other fields stay. */
-export function extractInto(record: QuotationRecord, text: string): QuotationRecord {
+export function extractInto(record: QuotationRecord, text: string, tax: TaxOptions = {}): QuotationRecord {
   const parse = parseQuotationText(text)
-  return { ...record, ...quotationFromParse(parse, text, record), parse, answeredLines: undefined }
+  return { ...record, ...quotationFromParse(parse, text, record, tax), parse, answeredLines: undefined }
 }
 
 export function newItem(): QuoteItem {
   return { id: crypto.randomUUID(), description: '', quantity: '1', unitPriceMinor: null, type: 'part', included: true }
 }
 
-export function newAdjustment(kind: Adjustment['kind'], order: number): Adjustment {
+export function newAdjustment(kind: Adjustment['kind'], order: number, { vatRegistered = false }: TaxOptions = {}): Adjustment {
   return {
     id: crypto.randomUUID(),
     label: { discount: 'Less discount', deduction: 'Less deduction', fee: 'Fee', tax: 'Tax' }[kind],
     kind,
     mode: kind === 'discount' || kind === 'fee' ? 'fixed' : 'percentage',
     value: '',
-    base: 'allBillable',
+    base: vatRegistered && kind === 'deduction' ? 'netOfVat' : 'allBillable',
     enabled: true,
     order,
   }
+}
+
+/**
+ * Tax a government office withholds from what it pays. VAT-registered: 5% final VAT (BIR 2306) and 1% EWT
+ * on goods (BIR 2307), both from the amount net of VAT. Non-VAT: 3% percentage tax and 1% EWT from the gross.
+ * Labels leave the rate out, since it shows beside them and the owner may change it (2% EWT on services).
+ * The owner's accountant has the final say on rates.
+ */
+export function governmentWithholding(order: number, { vatRegistered = false }: TaxOptions = {}): Adjustment[] {
+  const base: Adjustment['base'] = vatRegistered ? 'netOfVat' : 'allBillable'
+  const row = (label: string, value: string, offset: number): Adjustment => ({
+    id: crypto.randomUUID(), label, kind: 'deduction', mode: 'percentage', value, base, enabled: true, order: order + offset,
+  })
+  return vatRegistered
+    ? [row('Less final VAT (2306)', '5', 0), row('Less EWT (2307)', '1', 1)]
+    : [row('Less percentage tax (2306)', '3', 0), row('Less EWT (2307)', '1', 1)]
 }
 
 /** The id of an item's input, so a problem in the summary can take the owner straight to it. */
