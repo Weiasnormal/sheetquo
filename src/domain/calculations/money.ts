@@ -88,9 +88,27 @@ export type Totals = {
   unpricedItemIds: string[]
 }
 
-function adjustmentAmount(adjustment: Adjustment, bases: Record<Adjustment['base'], number>): { amountMinor: number; baseMinor?: number } {
+/** Prices that include 12% VAT are divided by 1.12 (112/100) to find the amount net of VAT. */
+export const VAT_DIVISOR = '1.12'
+const VAT_DIVISOR_PERCENT = 112n
+
+type Bases = Record<Exclude<Adjustment['base'], 'manual' | 'netOfVat'>, number>
+
+/**
+ * `vatGrossMinor` is what a net-of-VAT percentage starts from: all items less discounts. The amount is
+ * taken from it in one step, gross × rate ÷ 112, like Excel's ROUND(gross/1.12*rate,2), so the base is
+ * never rounded before the rate is applied.
+ */
+function adjustmentAmount(adjustment: Adjustment, bases: Bases, vatGrossMinor: number): { amountMinor: number; baseMinor?: number } {
   if (adjustment.mode === 'fixed') {
     return { amountMinor: isDecimal(adjustment.value) ? majorToMinor(adjustment.value) : 0 }
+  }
+  if (adjustment.base === 'netOfVat') {
+    const gross = BigInt(vatGrossMinor)
+    const baseMinor = Number(gross < 0n ? -divideHalfUp(-gross * 100n, VAT_DIVISOR_PERCENT) : divideHalfUp(gross * 100n, VAT_DIVISOR_PERCENT))
+    if (!isDecimal(adjustment.value) || gross <= 0n) return { amountMinor: 0, baseMinor }
+    const rate = parseDecimal(adjustment.value)
+    return { amountMinor: toSafeMinor(divideHalfUp(gross * rate.scaled, rate.scale * VAT_DIVISOR_PERCENT)), baseMinor }
   }
   const baseMinor = adjustment.base === 'manual' ? (adjustment.manualBaseMinor ?? 0) : bases[adjustment.base]
   if (!isDecimal(adjustment.value)) return { amountMinor: 0, baseMinor }
@@ -115,18 +133,22 @@ export function computeTotals(quotation: Pick<Quotation, 'items' | 'adjustments'
   }
 
   const subtotalMinor = partsMinor + laborMinor
-  const bases = { parts: partsMinor, labor: laborMinor, allBillable: subtotalMinor, manual: 0 }
+  const bases: Bases = { parts: partsMinor, labor: laborMinor, allBillable: subtotalMinor }
+
+  const enabled = [...quotation.adjustments].filter((adjustment) => adjustment.enabled).sort((a, b) => a.order - b.order)
+  // Withholding is taken after discounts. A discount itself never waits on other discounts.
+  const discountsMinor = enabled
+    .filter((adjustment) => adjustment.kind === 'discount')
+    .reduce((sum, adjustment) => sum + adjustmentAmount(adjustment, bases, subtotalMinor).amountMinor, 0)
+  const vatGrossMinor = subtotalMinor - discountsMinor
 
   let grandTotalMinor = subtotalMinor
-  const adjustments = [...quotation.adjustments]
-    .filter((adjustment) => adjustment.enabled)
-    .sort((a, b) => a.order - b.order)
-    .map((adjustment): AdjustmentTotal => {
-      const { amountMinor, baseMinor } = adjustmentAmount(adjustment, bases)
-      const subtracts = adjustment.kind === 'discount' || adjustment.kind === 'deduction'
-      grandTotalMinor += subtracts ? -amountMinor : amountMinor
-      return { id: adjustment.id, label: adjustment.label, kind: adjustment.kind, baseMinor, amountMinor }
-    })
+  const adjustments = enabled.map((adjustment): AdjustmentTotal => {
+    const { amountMinor, baseMinor } = adjustmentAmount(adjustment, bases, adjustment.kind === 'discount' ? subtotalMinor : vatGrossMinor)
+    const subtracts = adjustment.kind === 'discount' || adjustment.kind === 'deduction'
+    grandTotalMinor += subtracts ? -amountMinor : amountMinor
+    return { id: adjustment.id, label: adjustment.label, kind: adjustment.kind, baseMinor, amountMinor }
+  })
 
   return { partsMinor, laborMinor, subtotalMinor, adjustments, grandTotalMinor, unpricedItemIds }
 }

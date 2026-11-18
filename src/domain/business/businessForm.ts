@@ -41,6 +41,7 @@ const formSchema = z.object({
   defaultNotes: optionalText('Notes', 1000),
   defaultTerms: optionalText('Terms', 1000),
   defaultPreparedBy: optionalText('Prepared by', 120),
+  vatRegistered: z.boolean(),
 })
 
 export type BusinessFormValues = z.input<typeof formSchema>
@@ -57,6 +58,7 @@ export const EMPTY_BUSINESS_FORM: BusinessFormValues = {
   defaultNotes: '',
   defaultTerms: '',
   defaultPreparedBy: '',
+  vatRegistered: false,
 }
 
 export function toFormValues(business: BusinessRecord): BusinessFormValues {
@@ -71,6 +73,7 @@ export function toFormValues(business: BusinessRecord): BusinessFormValues {
     defaultNotes: business.defaultNotes ?? '',
     defaultTerms: business.defaultTerms ?? '',
     defaultPreparedBy: business.defaultPreparedBy ?? '',
+    vatRegistered: business.vatRegistered ?? false,
   }
 }
 
@@ -107,6 +110,7 @@ export const businessRecordSchema = z.object({
   defaultNotes: z.string().optional(),
   defaultTerms: z.string().optional(),
   defaultPreparedBy: z.string().optional(),
+  vatRegistered: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   archivedAt: z.string().optional(),

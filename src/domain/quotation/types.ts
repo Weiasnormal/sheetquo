@@ -16,6 +16,11 @@ export type Business = {
   defaultNotes?: string
   defaultTerms?: string
   defaultPreparedBy?: string
+  /**
+   * VAT-registered businesses quote prices that already include VAT, so government withholding is taken
+   * from the amount net of VAT (÷ 1.12). Missing means non-VAT, which keeps older businesses unchanged.
+   */
+  vatRegistered?: boolean
 }
 
 export type QuoteItem = {
@@ -42,7 +47,8 @@ export type Adjustment = {
   mode: 'fixed' | 'percentage'
   /** Fixed amounts are decimal currency strings, percentages are rates such as "5". */
   value: string
-  base: 'parts' | 'labor' | 'allBillable' | 'manual'
+  /** `netOfVat`: all items less discounts, divided by 1.12, the base government withholding is taken from. */
+  base: 'parts' | 'labor' | 'allBillable' | 'manual' | 'netOfVat'
   manualBaseMinor?: number
   enabled: boolean
   order: number

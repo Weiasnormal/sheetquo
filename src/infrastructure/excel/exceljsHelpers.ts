@@ -40,3 +40,8 @@ export const UNREADABLE = {
   code: 'NOT_XLSX',
   message: 'Could not read this workbook. Open it in Excel, save it again as .xlsx, and retry.',
 }
+
+/** "2%" or "2.5%". Excel prints a format like 0.##% as "2.%" for whole numbers, so those get 0%. */
+export function percentFormat(fraction: number) {
+  return Number.isInteger(Math.round(fraction * 1e8) / 1e6) ? '0%' : '0.####%'
+}
