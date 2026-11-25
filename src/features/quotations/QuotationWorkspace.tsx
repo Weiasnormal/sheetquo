@@ -107,7 +107,7 @@ function Editor({ initial, business, templates }: { initial: QuotationRecord; bu
   }
 
   async function extract() {
-    change((current) => extractInto(current, current.rawInput ?? ''))
+    change((current) => extractInto(current, current.rawInput ?? '', { vatRegistered: business.vatRegistered }))
     if (!(await flush())) return toast.error('The extracted details could not be saved. Keep this page open and retry saving.')
     wiwoSuccess('quote-created')
     navigate(href('review'))
@@ -274,6 +274,7 @@ function Editor({ initial, business, templates }: { initial: QuotationRecord; bu
             />
             <AdjustmentsEditor
               currency={record.letterhead?.currency ?? business.currency}
+              vatRegistered={business.vatRegistered ?? false}
               adjustments={record.adjustments}
               totals={totals.adjustments}
               issues={issues}

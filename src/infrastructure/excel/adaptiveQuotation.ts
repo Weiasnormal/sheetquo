@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs'
-import { computeTotals, lineAmountMinor } from '../../domain/calculations/money'
+import { computeTotals, lineAmountMinor, VAT_DIVISOR } from '../../domain/calculations/money'
 import { checkLogo, toDataUrl } from '../../domain/business/logo'
 import { checkQuotation } from '../../domain/quotation/checkQuotation'
 import type { QuotationRecord } from '../../domain/quotation/records'
@@ -7,7 +7,7 @@ import { suggestMapping } from '../../domain/template/suggestMapping'
 import { readGrid } from './workbookReader'
 import { scanPackage } from './packageScan'
 import type { SemanticKey } from '../../domain/template/types'
-import { loadWorkbook } from './exceljsHelpers'
+import { loadWorkbook, percentFormat } from './exceljsHelpers'
 
 const fields = ['description', 'partNumber', 'quantity', 'unit', 'unitPrice', 'lineAmount'] as const
 const labels = ['Description', 'Part number', 'Qty', 'Unit', 'Unit price', 'Amount']
@@ -45,6 +45,8 @@ function boxed(border: Partial<ExcelJS.Borders> | undefined): Partial<ExcelJS.Bo
 }
 const RED: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: 'FFDC2626' } }
 const ITEM_ALIGN = ['left', 'center', 'center', 'center', 'right', 'right'] as const
+
+const percentText = (fraction: number) => Number(Number((fraction * 100).toFixed(4))) + '%'
 
 /** "November 6, 2026", read from the date's own parts so no time zone can shift the day. */
 function longDate(iso: string) {
@@ -188,12 +190,19 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
   // Totals sit on the right like the owner's own form, with a gap between lines; signatures share their rows on the left.
   const signatures = [['Prepared by',q.preparedBy],['Received by',q.receivedBy],['Checked by',q.checkedBy]].filter(([,v]) => v).map(([l,v]) => l + ': ' + v)
   let summaries = 0
-  function summary(label: string, value: ExcelJS.CellValue, kind: 'subtotal' | 'discount' | 'charge' | 'grand') {
+  /** A rate gets its own cell beside the label, so editing it in Excel changes the amount. */
+  function summary(label: string, value: ExcelJS.CellValue, kind: 'subtotal' | 'discount' | 'charge' | 'grand', rate?: number) {
     if (summaries++ > 0) spacer()
     const signature = signatures.shift()
-    const row = sheet.addRow([signature ?? null,null,null,label,null,value])
+    const row = sheet.addRow([signature ?? null,null,null,label,rate ?? null,value])
     if (signature) sheet.mergeCells(row.number,1,row.number,3)
-    sheet.mergeCells(row.number,4,row.number,5)
+    if (rate === undefined) sheet.mergeCells(row.number,4,row.number,5)
+    else {
+      const cell = row.getCell(5)
+      cell.numFmt = percentFormat(rate)
+      cell.alignment = {horizontal:'right',vertical:'middle'}
+      cell.border = BOX
+    }
     row.font = {name:'Calibri',size:11,bold:true}
     row.getCell(1).alignment = {horizontal:'left',vertical:'middle',wrapText:true}
     row.getCell(4).alignment = {horizontal:'left',vertical:'middle',wrapText:true}
@@ -212,20 +221,33 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
       amount.border = BOX
       amount.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFF00'}}
     }
-    row.height = Math.max(22,Math.ceil(label.length / 28)*16+6)
+    if (rate !== undefined) row.getCell(5).font = {...row.getCell(4).font, bold:false}
+    const perLine = rate === undefined ? 28 : Math.max(8, Math.floor(actualWidths[3] * .95))
+    row.height = Math.max(22,Math.ceil(label.length / perLine)*16+6)
     return row.number
   }
   const subtotal = summary('Subtotal',{formula:'ROUND(SUM(F'+first+':F'+last+'),2)',result:totals.subtotalMinor/100},'subtotal')
-  for (const result of totals.adjustments) {
+  // Rows first, formulas second: a net-of-VAT base needs every discount row, wherever it sits.
+  const kindRange = 'G'+first+':G'+last, amountRange = 'F'+first+':F'+last
+  const written = totals.adjustments.map(result => {
     const adj = q.adjustments.find(a=>a.id===result.id)!
     const sign = ['discount','deduction'].includes(adj.kind) ? -1 : 1
     const value = sign*result.amountMinor/100
     const kind = sign < 0 ? 'discount' : 'charge'
-    if(adj.mode==='fixed') { summary(adj.label,value,kind); continue }
-    const kindRange = 'G'+first+':G'+last, amountRange='F'+first+':F'+last
+    if (adj.mode === 'fixed') return {adj, sign, value, row: summary(adj.label,value,kind)}
+    const label = adj.label + (adj.base === 'netOfVat' ? ' (net of VAT)' : '')
+    const row = summary(label,value,kind,Number(adj.value)/100)
+    return {adj, sign, value, row}
+  })
+  const discountRows = written.filter(({adj}) => adj.kind === 'discount').map(({row}) => 'F'+row)
+  for (const {adj, sign, value, row} of written) {
+    if (adj.mode === 'fixed') continue
+    // Discount amounts are negative on this sheet, so adding them takes them off.
     const base = adj.base==='manual' ? String((adj.manualBaseMinor ?? 0)/100)
-      : adj.base==='allBillable' ? 'F'+subtotal : 'SUMIF('+kindRange+',"'+(adj.base==='labor'?'labor':'<>labor')+'",'+amountRange+')'
-    summary(adj.label+' ('+adj.value+'%)',{formula:(sign<0?'-':'')+'ROUND('+base+'*'+Number(adj.value)+'/100,2)',result:value},kind)
+      : adj.base==='allBillable' ? 'F'+subtotal
+      : adj.base==='netOfVat' ? '('+(adj.kind === 'discount' ? ['F'+subtotal] : ['F'+subtotal, ...discountRows]).join('+')+')/'+VAT_DIVISOR
+      : 'SUMIF('+kindRange+',"'+(adj.base==='labor'?'labor':'<>labor')+'",'+amountRange+')'
+    sheet.getCell('F'+row).value = {formula:(sign<0?'-':'')+'ROUND('+base+'*E'+row+',2)',result:value}
   }
   summary('Grand total',{formula:'ROUND(SUM(F'+subtotal+':F'+sheet.rowCount+'),2)',result:totals.grandTotalMinor/100},'grand')
   for (const signature of signatures) { spacer(); line(signature, 11, true) }
@@ -246,7 +268,7 @@ export async function buildAdaptiveQuotation(q: QuotationRecord, design?: Uint8A
       const fill=cell.fill?.type==='pattern' && cell.fill.pattern==='solid' ? cell.fill.fgColor?.argb : undefined
       const color=cell.font?.color?.argb
       const align=cell.alignment?.horizontal
-      cells.push({text:typeof value==='number' && cell.numFmt===numFmt ? money(value) : String(value ?? ''),
+      cells.push({text:typeof value==='number' && cell.numFmt===numFmt ? money(value) : typeof value==='number' && cell.numFmt?.endsWith('%') ? percentText(value) : String(value ?? ''),
         span,bold:cell.font?.bold,size:cell.font?.size,font:cell.font?.name,border:!!cell.border?.bottom,
         box:!!(cell.border?.top && cell.border.left && cell.border.right && cell.border.bottom),double:cell.border?.bottom?.style==='double',
         align:align==='center'||align==='left'||align==='right'?align:typeof value==='number'?'right':'left',

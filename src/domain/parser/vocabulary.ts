@@ -58,8 +58,9 @@ export type FieldKey =
   | 'notes'
 
 export const LABOR_WORDS = /^(labou?r|installation|install|service fee|service charge|workmanship)\b/i
-export const DISCOUNT_WORDS = /^(less )?discount\b|^less\b(?!.*\b2307\b)/i
-export const DEDUCTION_2307 = /\b2307\b/
+export const DISCOUNT_WORDS = /^(less )?discount\b|^less\b(?!.*\b230[67]\b)/i
+/** BIR forms for tax withheld by the customer: 2307 for expanded withholding, 2306 for final (e.g. 5% VAT on government sales). */
+export const DEDUCTION_2307 = /\b230[67]\b/
 export const FREE_WORDS = /\b(free|foc|f\.o\.c\.?|no charge|complimentary)\b/i
 export const EACH_WORDS = /\b(each|ea\.?|per (pc|piece|unit|set)|\/(pc|piece|unit|set|ea))\b/i
 export const TOTAL_WORDS = /\b(total|all in|for all|in all|lot)\b/i

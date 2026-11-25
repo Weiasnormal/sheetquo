@@ -45,7 +45,10 @@ export function itemsFromParse(result: ParseResult): QuoteItem[] {
   return items
 }
 
-export function adjustmentsFromParse(result: ParseResult): Adjustment[] {
+/** The business's VAT status decides where withholding starts: VAT-registered prices include VAT, so ÷ 1.12 first. */
+export type TaxOptions = { vatRegistered?: boolean }
+
+export function adjustmentsFromParse(result: ParseResult, { vatRegistered = false }: TaxOptions = {}): Adjustment[] {
   return result.lines
     .filter((line) => line.kind === 'adjustment' && line.adjustment)
     .map((line, index) => ({
@@ -54,7 +57,7 @@ export function adjustmentsFromParse(result: ParseResult): Adjustment[] {
       kind: line.adjustment!.kind,
       mode: line.adjustment!.mode,
       value: line.adjustment!.value,
-      base: 'allBillable' as const,
+      base: vatRegistered && line.adjustment!.kind === 'deduction' ? 'netOfVat' : 'allBillable',
       enabled: line.adjustment!.enabled,
       order: index + 1,
     }))
@@ -62,7 +65,7 @@ export function adjustmentsFromParse(result: ParseResult): Adjustment[] {
 
 type QuotationBase = Pick<Quotation, 'id' | 'businessId' | 'templateVersionId' | 'quoteDateISO'> & Partial<Quotation>
 
-export function quotationFromParse(result: ParseResult, rawInput: string, base: QuotationBase): Quotation {
+export function quotationFromParse(result: ParseResult, rawInput: string, base: QuotationBase, tax: TaxOptions = {}): Quotation {
   const { fields } = result
   return {
     ...base,
@@ -77,7 +80,7 @@ export function quotationFromParse(result: ParseResult, rawInput: string, base: 
     chassis: fields.chassis ?? base.chassis,
     notes: fields.notes ?? base.notes,
     items: itemsFromParse(result),
-    adjustments: adjustmentsFromParse(result),
+    adjustments: adjustmentsFromParse(result, tax),
     rawInput,
   }
 }

@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs'
-import { computeTotals, lineAmountMinor, minorToNumber } from '../../domain/calculations/money'
+import { computeTotals, lineAmountMinor, minorToNumber, VAT_DIVISOR } from '../../domain/calculations/money'
 import type { Totals } from '../../domain/calculations/money'
 import { estimateRowHeight } from '../../domain/print/rowHeight'
 import { checkQuotation } from '../../domain/quotation/checkQuotation'
@@ -20,7 +20,7 @@ import {
 } from './a1'
 import type { CellRange } from './a1'
 import type { Region } from '../../domain/template/region'
-import { mergesOf, toBuffer } from './exceljsHelpers'
+import { mergesOf, percentFormat, toBuffer } from './exceljsHelpers'
 import { scanPackage } from './packageScan'
 import { extractRegion } from './regionExtractor'
 import type {
@@ -453,8 +453,15 @@ function writeTotals(
   const items = quotation.items.filter((item) => item.included && !(labor && item.type === 'labor'))
   const laborCells = items.flatMap((item, index) => item.type === 'labor' ? [`${amountColumn}${firstItemRow + index}`] : [])
   const laborRef = labor ? addressOf(labor) : laborCells.length ? `SUM(${laborCells.join(',')})` : '0'
-  const baseFormula = (adjustment: Adjustment) => adjustment.base === 'manual' ? String(minorToNumber(adjustment.manualBaseMinor ?? 0)) : adjustment.base === 'labor' ? laborRef : adjustment.base === 'parts' ? `(${subtotalRef}-${laborRef})` : subtotalRef
-  const formulaFor = (adjustment: Adjustment) => adjustment.mode === 'percentage' ? `ROUND(${baseFormula(adjustment)}*${Number(adjustment.value)}/100,2)` : `ROUND(${Number(adjustment.value)},2)`
+  // Withholding net of VAT is taken after discounts, so it reads every discount's own amount cell.
+  const discountRefs = adjustments.flatMap((adjustment, index) => {
+    const slot = template.adjustmentRows?.[index]
+    return adjustment.kind === 'discount' && slot ? [moveAddress(slot.amount)] : []
+  })
+  const netOfVat = (adjustment: Adjustment) => `((${[subtotalRef, ...(adjustment.kind === 'discount' ? [] : discountRefs)].join('-')})/${VAT_DIVISOR})`
+  const baseFormula = (adjustment: Adjustment) => adjustment.base === 'manual' ? String(minorToNumber(adjustment.manualBaseMinor ?? 0)) : adjustment.base === 'labor' ? laborRef : adjustment.base === 'parts' ? `(${subtotalRef}-${laborRef})` : adjustment.base === 'netOfVat' ? netOfVat(adjustment) : subtotalRef
+  /** With a mapped rate (and base) cell, the amount reads them, so changing either in Excel recalculates. */
+  const formulaFor = (adjustment: Adjustment, rateRef?: string, baseRef?: string) => adjustment.mode === 'percentage' ? `ROUND(${baseRef ?? baseFormula(adjustment)}*${rateRef ?? `${Number(adjustment.value)}/100`},2)` : `ROUND(${Number(adjustment.value)},2)`
   const moneyCell = (address: string) => {
     const cell = sheet.getCell(address)
     if (template.output?.moneyFormat === 'business') cell.numFmt = moneyFormat
@@ -470,7 +477,7 @@ function writeTotals(
   }
 
   const slotRefs: { ref: string; adjustment: Adjustment }[] = []
-  const bases = { allBillable: 'all items', parts: 'parts/services', labor: 'labor', manual: 'manual base' }
+  const bases = { allBillable: 'all items', parts: 'parts/services', labor: 'labor', manual: 'manual base', netOfVat: 'the amount net of VAT' }
   for (const [index, slot] of (template.adjustmentRows ?? []).entries()) {
     const adjustment = adjustments[index]
     const label = sheet.getCell(moveAddress(slot.label)), amount = moneyCell(moveAddress(slot.amount))
@@ -482,8 +489,12 @@ function writeTotals(
       continue
     }
     const calculated = totals.adjustments.find(({ id }) => id === adjustment.id)!
-    label.value = `${adjustment.label}${adjustment.mode === 'percentage' ? ` (${adjustment.value}% of ${bases[adjustment.base]})` : ''}`
-    writeFormula(amount, formulaFor(adjustment), calculated.amountMinor, moneyFormat)
+    const percentage = adjustment.mode === 'percentage'
+    // A mapped rate cell shows the percent itself, so the label names only the base and never goes stale.
+    label.value = `${adjustment.label}${percentage ? slot.rate ? ` (of ${bases[adjustment.base]})` : ` (${adjustment.value}% of ${bases[adjustment.base]})` : ''}`
+    const rateRef = percentage && slot.rate ? moveAddress(slot.rate) : undefined
+    const baseRef = percentage && slot.base ? moveAddress(slot.base) : undefined
+    writeFormula(amount, formulaFor(adjustment, rateRef, baseRef), calculated.amountMinor, moneyFormat)
     if (slot.base) {
       const base = moneyCell(moveAddress(slot.base))
       if (adjustment.mode === 'percentage') writeFormula(base, baseFormula(adjustment), calculated.baseMinor ?? 0, moneyFormat)
@@ -491,8 +502,8 @@ function writeTotals(
     }
     if (slot.rate) {
       const rate = sheet.getCell(moveAddress(slot.rate))
-      rate.value = adjustment.mode === 'percentage' ? Number(adjustment.value) / 100 : null
-      rate.numFmt = '0.####%'
+      rate.value = percentage ? Number(adjustment.value) / 100 : null
+      rate.numFmt = percentage ? percentFormat(Number(adjustment.value) / 100) : '0%'
     }
     slotRefs.push({ ref: moveAddress(slot.amount), adjustment })
   }

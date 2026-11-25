@@ -30,7 +30,7 @@ export const quotationRecordSchema: z.ZodType<QuotationRecord> = z.object({
   adjustments: z.array(z.object({
     id, label: text, kind: z.enum(['discount', 'deduction', 'fee', 'tax']),
     mode: z.enum(['fixed', 'percentage']), value: text,
-    base: z.enum(['parts', 'labor', 'allBillable', 'manual']), manualBaseMinor: minor.optional(),
+    base: z.enum(['parts', 'labor', 'allBillable', 'manual', 'netOfVat']), manualBaseMinor: minor.optional(),
     enabled: z.boolean(), order: z.number().int(),
   })),
   parse: z.object({

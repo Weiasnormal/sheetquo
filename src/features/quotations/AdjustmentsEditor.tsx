@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { Landmark, Plus, Trash2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Input, Select } from '../../components/forms/Field'
 import { Button } from '../../components/ui/Button'
@@ -8,7 +8,7 @@ import { formatMoney } from '../../domain/calculations/money'
 import type { AdjustmentTotal } from '../../domain/calculations/money'
 import type { QuotationIssue } from '../../domain/quotation/checkQuotation'
 import type { Adjustment } from '../../domain/quotation/types'
-import { newAdjustment } from './draftSetup'
+import { governmentWithholding, newAdjustment } from './draftSetup'
 import { MoneyInput } from './MoneyInput'
 
 type AdjustmentsUpdate = (update: (adjustments: Adjustment[]) => Adjustment[]) => void
@@ -18,6 +18,7 @@ const BASES: { value: Adjustment['base']; label: string }[] = [
   { value: 'parts', label: 'Parts and services' },
   { value: 'labor', label: 'Labor only' },
   { value: 'manual', label: 'An amount I type' },
+  { value: 'netOfVat', label: 'Net of VAT (÷ 1.12)' },
 ]
 
 function Cell({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
@@ -33,19 +34,23 @@ export function AdjustmentsEditor({
   adjustments,
   totals,
   currency,
+  vatRegistered = false,
   issues,
   onChange,
 }: {
   adjustments: Adjustment[]
   totals: AdjustmentTotal[]
   currency: string
+  /** From the business profile. VAT-registered prices include VAT, so withholding starts net of VAT. */
+  vatRegistered?: boolean
   issues: QuotationIssue[]
   onChange: AdjustmentsUpdate
 }) {
   const patch = (id: string, change: Partial<Adjustment>) =>
     onChange((current) => current.map((adjustment) => (adjustment.id === id ? { ...adjustment, ...change } : adjustment)))
 
-  const add = (kind: Adjustment['kind']) => onChange((current) => [...current, newAdjustment(kind, current.length + 1)])
+  const add = (kind: Adjustment['kind']) => onChange((current) => [...current, newAdjustment(kind, current.length + 1, { vatRegistered })])
+  const addGovernment = () => onChange((current) => [...current, ...governmentWithholding(current.length + 1, { vatRegistered })])
 
   return (
     <Panel data-wiwo="adjustments" aria-labelledby="adjustments-title" className="@container p-5">
@@ -53,6 +58,11 @@ export function AdjustmentsEditor({
       <p className="mt-1 text-muted">
         Discounts and deductions subtract; fees and taxes add. Each percentage names its base. Deductions such as 2307 apply only when you turn them on, and Sheetquo
         does not decide tax rules.
+      </p>
+      <p data-wiwo="vat-status" className="mt-2 text-xs text-muted">
+        {vatRegistered
+          ? 'VAT-registered (set in the business profile): prices include 12% VAT, so withholding is taken from the amount net of VAT, after discounts, ÷ 1.12.'
+          : 'Non-VAT (set in the business profile): withholding is taken from the full amount.'}
       </p>
 
       {adjustments.length > 0 && (
@@ -99,10 +109,10 @@ export function AdjustmentsEditor({
                       <span className="text-muted">Percentage base</span>
                       <Select
                         value={adjustment.base}
-                        className="min-h-8 w-40"
+                        className="min-h-8 w-48"
                         onChange={(event) => patch(adjustment.id, { base: event.target.value as Adjustment['base'] })}
                       >
-                        {BASES.map(({ value, label }) => (
+                        {BASES.filter(({ value }) => value !== 'netOfVat' || vatRegistered || adjustment.base === 'netOfVat').map(({ value, label }) => (
                           <option key={value} value={value}>
                             {label}
                           </option>
@@ -169,6 +179,10 @@ export function AdjustmentsEditor({
         </Button>
         <Button variant="secondary" onClick={() => add('fee')}><Plus strokeWidth={1.75} aria-hidden="true" />Add fee</Button>
         <Button variant="secondary" onClick={() => add('tax')}><Plus strokeWidth={1.75} aria-hidden="true" />Add tax</Button>
+        <Button variant="secondary" onClick={addGovernment} title={vatRegistered ? 'Adds 5% final VAT (2306) and 1% EWT (2307), net of VAT' : 'Adds 3% percentage tax (2306) and 1% EWT (2307)'}>
+          <Landmark strokeWidth={1.75} aria-hidden="true" />
+          Add government withholding
+        </Button>
       </div>
     </Panel>
   )

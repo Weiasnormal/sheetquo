@@ -205,6 +205,35 @@ export function BusinessEditor({ business }: { business?: BusinessRecord }) {
                 </Select>
               )}
             </Field>
+            <fieldset data-wiwo="business-vat" className="flex flex-col gap-2">
+              <legend className="mb-2 font-medium">VAT status</legend>
+              <div role="radiogroup" aria-label="VAT status" className="inline-flex w-fit rounded-button border border-line p-0.5">
+                {[
+                  { value: true, label: 'VAT-registered' },
+                  { value: false, label: 'Non-VAT' },
+                ].map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    role="radio"
+                    aria-checked={values.vatRegistered === option.value}
+                    onClick={() => setValues((current) => ({ ...current, vatRegistered: option.value }))}
+                    className={
+                      'min-h-9 rounded-button px-4 text-sm font-medium transition-colors ' +
+                      (values.vatRegistered === option.value ? 'bg-lime text-ink' : 'text-muted hover:text-ink')
+                    }
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted">
+                {values.vatRegistered
+                  ? 'Your prices include 12% VAT. Government withholding (5% final VAT, 1% or 2% EWT) is taken from the amount net of VAT: total after discounts ÷ 1.12.'
+                  : 'Withholding is taken from the full amount, with no VAT division.'}{' '}
+                Applies to new adjustments and pasted messages; existing quotations keep their own settings.
+              </p>
+            </fieldset>
             <Field label="Prepared by" hint="Filled in on new quotations, and you can change it on each one" error={errors.defaultPreparedBy}>
               {(control) => <Input {...control} value={values.defaultPreparedBy} onChange={update('defaultPreparedBy')} autoComplete="name" />}
             </Field>
