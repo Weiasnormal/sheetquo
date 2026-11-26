@@ -100,7 +100,7 @@ export function BackupControls() {
             <ul className="mt-2 list-disc pl-5 text-sm break-words">{incoming.backup.businesses.map((business) => <li key={business.id}>{business.displayName}{preview.conflicts.includes(business.id) ? ' — already present' : ''}</li>)}</ul>
           </div>
           <label className="flex flex-col gap-2">How to restore
-            <select data-wiwo="backup-mode" value={mode} onChange={(event) => { setMode(event.target.value as RestoreMode); setConfirmed(false) }} className="min-w-0 rounded-button border border-line bg-surface p-2">
+            <select data-wiwo="backup-mode" value={mode} onChange={(event) => { setMode(event.target.value as RestoreMode); setConfirmed(false) }} className="select-chevron min-w-0 rounded-button border border-line bg-surface p-2 pr-9">
               <option value="merge">Add missing businesses</option>
               <option value="copy">Restore as separate copies</option>
               <option value="replace">Replace all local data</option>

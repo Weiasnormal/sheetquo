@@ -73,7 +73,7 @@ export function AdjustmentsEditor({
             const percentage = adjustment.mode === 'percentage'
             return (
               <li data-wiwo-adjustment={adjustment.id} key={adjustment.id} className={cn('py-3', !adjustment.enabled && 'text-muted')}>
-                <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-[minmax(0,1fr)_7rem_10rem_7rem]">
+                <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-[minmax(0,1fr)_8.5rem_10rem_7rem]">
                   <Cell label="Label" className="col-span-2 @2xl:col-span-1">
                     <Input value={adjustment.label} onChange={(event) => patch(adjustment.id, { label: event.target.value })} />
                   </Cell>

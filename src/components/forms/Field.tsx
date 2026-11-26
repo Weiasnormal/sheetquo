@@ -63,5 +63,5 @@ export function Textarea({ className, ...props }: ComponentProps<'textarea'>) {
 }
 
 export function Select({ className, ...props }: ComponentProps<'select'>) {
-  return <select className={cn(CONTROL, 'min-h-10', className)} {...props} />
+  return <select className={cn(CONTROL, 'select-chevron min-h-10 pr-9', className)} {...props} />
 }
